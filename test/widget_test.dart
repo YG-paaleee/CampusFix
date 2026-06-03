@@ -22,4 +22,15 @@ void main() {
     expect(find.text('Location or room'), findsOneWidget);
     expect(find.text('Description'), findsOneWidget);
   });
+
+  testWidgets('my reports button opens reports list', (WidgetTester tester) async {
+    await tester.pumpWidget(const CampusFixApp());
+
+    await tester.tap(find.text('My Reports'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Broken classroom chair'), findsOneWidget);
+    expect(find.text('Projector not working'), findsOneWidget);
+    expect(find.text('Leaking faucet'), findsOneWidget);
+  });
 }
