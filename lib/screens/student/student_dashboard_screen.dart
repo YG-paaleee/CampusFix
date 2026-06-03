@@ -21,40 +21,75 @@ class StudentDashboardScreen extends StatelessWidget {
     final resolvedCount = _countReportsByStatus('Resolved');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CampusFix')),
+      appBar: AppBar(title: const Text('CampusFix Student')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text(
-            'Student Dashboard',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Track your campus maintenance requests.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _StatusCard(
-                  label: 'Submitted',
-                  value: '$submittedCount',
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Student Dashboard',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatusCard(
-                  label: 'In Progress',
-                  value: '$inProgressCount',
+                const SizedBox(height: 8),
+                Text(
+                  'Track campus repairs and submit maintenance requests.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFFFFE8C8),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatusCard(label: 'Resolved', value: '$resolvedCount'),
-              ),
-            ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 720;
+              final cardWidth = isNarrow
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 24) / 3;
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: cardWidth,
+                    child: _StatusCard(
+                      label: 'Submitted',
+                      value: '$submittedCount',
+                      icon: Icons.pending_actions,
+                    ),
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _StatusCard(
+                      label: 'In Progress',
+                      value: '$inProgressCount',
+                      icon: Icons.engineering,
+                    ),
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _StatusCard(
+                      label: 'Resolved',
+                      value: '$resolvedCount',
+                      icon: Icons.check_circle,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           Text('Actions', style: Theme.of(context).textTheme.titleLarge),
@@ -105,21 +140,33 @@ class StudentDashboardScreen extends StatelessWidget {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.label, required this.value});
+  const _StatusCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   final String label;
   final String value;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(value, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text(label),
+              ],
+            ),
+            Icon(icon, color: Theme.of(context).colorScheme.secondary),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models/maintenance_report.dart';
+import 'screens/login_screen.dart';
 import 'screens/student/student_dashboard_screen.dart';
 
 void main() {
@@ -51,16 +52,51 @@ class _CampusFixAppState extends State<CampusFixApp> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF0B5D3A))
+        .copyWith(
+          primary: const Color(0xFF0B5D3A),
+          secondary: const Color(0xFFE58A1F),
+          surface: const Color(0xFFFFFCF5),
+        );
+
     return MaterialApp(
       title: 'CampusFix',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: const Color(0xFFFFFCF5),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0B5D3A),
+          foregroundColor: Colors.white,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Color(0xFFE8DEC8)),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF0B5D3A), width: 2),
+          ),
+        ),
       ),
-      home: StudentDashboardScreen(
-        reports: _reports,
-        onReportCreated: _addReport,
+      home: LoginScreen(
+        studentHomeBuilder: (context) {
+          return StudentDashboardScreen(
+            reports: _reports,
+            onReportCreated: _addReport,
+          );
+        },
       ),
     );
   }

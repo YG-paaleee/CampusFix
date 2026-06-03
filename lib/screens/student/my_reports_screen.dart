@@ -22,10 +22,17 @@ class MyReportsScreen extends StatelessWidget {
 
                 return Card(
                   child: ListTile(
-                    leading: const Icon(Icons.build),
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      child: const Icon(Icons.build, size: 20),
+                    ),
                     title: Text(report.title),
-                    subtitle: Text('${report.category} - ${report.location}'),
-                    trailing: Chip(label: Text(report.status)),
+                    subtitle: Text(
+                      '${report.category} - ${report.location}\nUrgency: ${report.urgency}',
+                    ),
+                    trailing: _StatusChip(status: report.status),
+                    isThreeLine: true,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -57,14 +64,46 @@ class _ReportDetailScreen extends StatelessWidget {
         children: [
           Text(report.title, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 12),
-          Chip(label: Text(report.status)),
+          _StatusChip(status: report.status),
           const SizedBox(height: 24),
-          _DetailRow(label: 'Category', value: report.category),
-          _DetailRow(label: 'Location', value: report.location),
-          _DetailRow(label: 'Urgency', value: report.urgency),
-          _DetailRow(label: 'Description', value: report.description),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DetailRow(label: 'Category', value: report.category),
+                  _DetailRow(label: 'Location', value: report.location),
+                  _DetailRow(label: 'Urgency', value: report.urgency),
+                  _DetailRow(label: 'Description', value: report.description),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      'Resolved' => const Color(0xFF2F7D32),
+      'In Progress' => Theme.of(context).colorScheme.secondary,
+      _ => Theme.of(context).colorScheme.primary,
+    };
+
+    return Chip(
+      label: Text(status),
+      backgroundColor: color.withValues(alpha: 0.12),
+      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700),
+      side: BorderSide(color: color.withValues(alpha: 0.35)),
     );
   }
 }

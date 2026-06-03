@@ -3,10 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('student dashboard renders', (WidgetTester tester) async {
+  testWidgets('login screen renders first', (WidgetTester tester) async {
     await tester.pumpWidget(const CampusFixApp());
 
     expect(find.text('CampusFix'), findsOneWidget);
+    expect(find.text('Login as Student'), findsOneWidget);
+    expect(
+      find.text('Palawan State University maintenance request portal'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('student login opens dashboard', (WidgetTester tester) async {
+    await tester.pumpWidget(const CampusFixApp());
+    await _loginAsStudent(tester);
+
     expect(find.text('Student Dashboard'), findsOneWidget);
     expect(find.text('Submit Report'), findsOneWidget);
     expect(find.text('My Reports'), findsOneWidget);
@@ -16,6 +27,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CampusFixApp());
+    await _loginAsStudent(tester);
 
     await tester.tap(find.text('Submit Report'));
     await tester.pumpAndSettle();
@@ -30,6 +42,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CampusFixApp());
+    await _loginAsStudent(tester);
 
     await tester.tap(find.text('My Reports'));
     await tester.pumpAndSettle();
@@ -41,6 +54,7 @@ void main() {
 
   testWidgets('report item opens detail screen', (WidgetTester tester) async {
     await tester.pumpWidget(const CampusFixApp());
+    await _loginAsStudent(tester);
 
     await tester.tap(find.text('My Reports'));
     await tester.pumpAndSettle();
@@ -60,6 +74,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CampusFixApp());
+    await _loginAsStudent(tester);
 
     await tester.tap(find.text('Submit Report'));
     await tester.pumpAndSettle();
@@ -84,6 +99,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Broken window'), findsOneWidget);
-    expect(find.text('Classroom - Room 105'), findsOneWidget);
+    expect(find.text('Classroom - Room 105\nUrgency: Medium'), findsOneWidget);
   });
+}
+
+Future<void> _loginAsStudent(WidgetTester tester) async {
+  await tester.tap(find.text('Login as Student'));
+  await tester.pumpAndSettle();
 }
