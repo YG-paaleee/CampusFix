@@ -1,4 +1,5 @@
 import 'package:campusfix/main.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -11,7 +12,9 @@ void main() {
     expect(find.text('My Reports'), findsOneWidget);
   });
 
-  testWidgets('submit report button opens form screen', (WidgetTester tester) async {
+  testWidgets('submit report button opens form screen', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const CampusFixApp());
 
     await tester.tap(find.text('Submit Report'));
@@ -23,7 +26,9 @@ void main() {
     expect(find.text('Description'), findsOneWidget);
   });
 
-  testWidgets('my reports button opens reports list', (WidgetTester tester) async {
+  testWidgets('my reports button opens reports list', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const CampusFixApp());
 
     await tester.tap(find.text('My Reports'));
@@ -45,6 +50,40 @@ void main() {
 
     expect(find.text('Report Details'), findsOneWidget);
     expect(find.text('Room 204'), findsOneWidget);
-    expect(find.text('One chair near the back row has a broken leg.'), findsOneWidget);
+    expect(
+      find.text('One chair near the back row has a broken leg.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('submitted report appears in my reports', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CampusFixApp());
+
+    await tester.tap(find.text('Submit Report'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'Broken window');
+    await tester.enterText(find.byType(TextFormField).at(1), 'Room 105');
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'Window glass has a visible crack.',
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Submit').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Student Dashboard'), findsOneWidget);
+    expect(find.text('Report submitted.'), findsOneWidget);
+
+    await tester.tap(find.text('My Reports'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Broken window'), findsOneWidget);
+    expect(find.text('Classroom - Room 105'), findsOneWidget);
   });
 }

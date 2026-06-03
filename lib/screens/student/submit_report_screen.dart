@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../models/maintenance_report.dart';
+
 class SubmitReportScreen extends StatefulWidget {
   const SubmitReportScreen({super.key});
 
@@ -29,9 +31,16 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Report ready to submit.')),
+    final report = MaintenanceReport(
+      title: _titleController.text.trim(),
+      location: _locationController.text.trim(),
+      category: _category,
+      urgency: _urgency,
+      status: 'Submitted',
+      description: _descriptionController.text.trim(),
     );
+
+    Navigator.pop(context, report);
   }
 
   @override
@@ -75,10 +84,16 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
               ),
               items: const [
                 DropdownMenuItem(value: 'Classroom', child: Text('Classroom')),
-                DropdownMenuItem(value: 'Electrical', child: Text('Electrical')),
+                DropdownMenuItem(
+                  value: 'Electrical',
+                  child: Text('Electrical'),
+                ),
                 DropdownMenuItem(value: 'Plumbing', child: Text('Plumbing')),
                 DropdownMenuItem(value: 'Restroom', child: Text('Restroom')),
-                DropdownMenuItem(value: 'IT Equipment', child: Text('IT Equipment')),
+                DropdownMenuItem(
+                  value: 'IT Equipment',
+                  child: Text('IT Equipment'),
+                ),
                 DropdownMenuItem(value: 'Others', child: Text('Others')),
               ],
               onChanged: (value) {
