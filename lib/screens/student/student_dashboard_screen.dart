@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'submit_report_screen.dart';
+
 class StudentDashboardScreen extends StatelessWidget {
   const StudentDashboardScreen({super.key});
 
@@ -33,7 +35,14 @@ class StudentDashboardScreen extends StatelessWidget {
           Text('Actions', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SubmitReportScreen(),
+                ),
+              );
+            },
             icon: const Icon(Icons.add),
             label: const Text('Submit Report'),
           ),

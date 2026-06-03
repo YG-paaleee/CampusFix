@@ -10,4 +10,16 @@ void main() {
     expect(find.text('Submit Report'), findsOneWidget);
     expect(find.text('My Reports'), findsOneWidget);
   });
+
+  testWidgets('submit report button opens form screen', (WidgetTester tester) async {
+    await tester.pumpWidget(const CampusFixApp());
+
+    await tester.tap(find.text('Submit Report'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maintenance Request'), findsOneWidget);
+    expect(find.text('Issue title'), findsOneWidget);
+    expect(find.text('Location or room'), findsOneWidget);
+    expect(find.text('Description'), findsOneWidget);
+  });
 }
