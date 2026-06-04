@@ -17,7 +17,9 @@ class CampusFixApp extends StatefulWidget {
 
 class _CampusFixAppState extends State<CampusFixApp> {
   final List<MaintenanceReport> _reports = [
-    const MaintenanceReport(
+    MaintenanceReport(
+      reportId: 'CF-0001',
+      submittedAt: DateTime(2026, 6, 1),
       title: 'Broken classroom chair',
       location: 'Room 204',
       category: 'Classroom',
@@ -25,7 +27,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
       status: 'Submitted',
       description: 'One chair near the back row has a broken leg.',
     ),
-    const MaintenanceReport(
+    MaintenanceReport(
+      reportId: 'CF-0002',
+      submittedAt: DateTime(2026, 6, 2),
       title: 'Projector not working',
       location: 'IT Lab 1',
       category: 'IT Equipment',
@@ -34,7 +38,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
       description:
           'The projector turns on but does not display the computer screen.',
     ),
-    const MaintenanceReport(
+    MaintenanceReport(
+      reportId: 'CF-0003',
+      submittedAt: DateTime(2026, 6, 3),
       title: 'Leaking faucet',
       location: 'Restroom A',
       category: 'Plumbing',
@@ -52,11 +58,11 @@ class _CampusFixAppState extends State<CampusFixApp> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF0B5D3A))
+    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF114B3A))
         .copyWith(
-          primary: const Color(0xFF0B5D3A),
-          secondary: const Color(0xFFE58A1F),
-          surface: const Color(0xFFFFFCF5),
+          primary: const Color(0xFF114B3A),
+          secondary: const Color(0xFF0D7C66),
+          surface: Colors.white,
         );
 
     return MaterialApp(
@@ -64,20 +70,22 @@ class _CampusFixAppState extends State<CampusFixApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: colorScheme,
-        scaffoldBackgroundColor: const Color(0xFFFFFCF5),
+        scaffoldBackgroundColor: const Color(0xFFF5F7F4),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0B5D3A),
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF17211C),
           centerTitle: false,
+          elevation: 0,
+          surfaceTintColor: Colors.white,
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 0,
+          elevation: 1,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
-            side: const BorderSide(color: Color(0xFFE8DEC8)),
+            side: const BorderSide(color: Color(0xFFE2E7E1)),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -86,7 +94,27 @@ class _CampusFixAppState extends State<CampusFixApp> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF0B5D3A), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF114B3A), width: 2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF114B3A),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF114B3A),
+            side: const BorderSide(color: Color(0xFF9DB7AD)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ),

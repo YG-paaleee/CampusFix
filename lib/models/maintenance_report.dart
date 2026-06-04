@@ -1,5 +1,7 @@
 class MaintenanceReport {
   const MaintenanceReport({
+    required this.reportId,
+    required this.submittedAt,
     required this.title,
     required this.location,
     required this.category,
@@ -8,6 +10,8 @@ class MaintenanceReport {
     required this.description,
   });
 
+  final String reportId;
+  final DateTime submittedAt;
   final String title;
   final String location;
   final String category;
