@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
-import 'report_detail_screen.dart';
+import '../../models/report_options.dart';
+import '../../utils/date_formatter.dart';
+import '../../widgets/status_chip.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key, required this.reports});
@@ -15,8 +18,8 @@ class MyReportsScreen extends StatefulWidget {
 class _MyReportsScreenState extends State<MyReportsScreen> {
   final _searchController = TextEditingController();
 
-  String _statusFilter = 'All';
-  String _sortBy = 'Newest First';
+  ReportStatus? _statusFilter;
+  _ReportSort _sortBy = _ReportSort.newestFirst;
 
   @override
   void dispose() {
@@ -97,18 +100,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         subtitle: Text(
-                          '${report.category} - ${report.location}\nUrgency: ${report.urgency} - ${report.reportId} - ${_formatDate(report.submittedAt)}',
+                          '${report.category.label} - ${report.location}\nUrgency: ${report.urgency.label} - ${report.reportId} - ${formatDate(report.submittedAt)}',
                         ),
-                        trailing: _StatusChip(status: report.status),
+                        trailing: StatusChip(status: report.status),
                         isThreeLine: true,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ReportDetailScreen(report: report),
-                            ),
-                          );
+                          context.push('/student/reports/${report.reportId}');
                         },
                       ),
                     ),
@@ -129,32 +126,24 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
           searchText.isEmpty ||
           report.title.toLowerCase().contains(searchText) ||
           report.location.toLowerCase().contains(searchText) ||
-          report.category.toLowerCase().contains(searchText) ||
+          report.category.label.toLowerCase().contains(searchText) ||
           report.reportId.toLowerCase().contains(searchText);
       final matchesStatus =
-          _statusFilter == 'All' || report.status == _statusFilter;
+          _statusFilter == null || report.status == _statusFilter;
 
       return matchesSearch && matchesStatus;
     }).toList();
 
     filtered.sort((a, b) {
       return switch (_sortBy) {
-        'Oldest First' => a.submittedAt.compareTo(b.submittedAt),
-        'Urgency' => _urgencyRank(b.urgency).compareTo(_urgencyRank(a.urgency)),
-        'Status' => a.status.compareTo(b.status),
-        _ => b.submittedAt.compareTo(a.submittedAt),
+        _ReportSort.oldestFirst => a.submittedAt.compareTo(b.submittedAt),
+        _ReportSort.urgency => b.urgency.rank.compareTo(a.urgency.rank),
+        _ReportSort.status => a.status.label.compareTo(b.status.label),
+        _ReportSort.newestFirst => b.submittedAt.compareTo(a.submittedAt),
       };
     });
 
     return filtered;
-  }
-
-  int _urgencyRank(String urgency) {
-    return switch (urgency) {
-      'High' => 3,
-      'Medium' => 2,
-      _ => 1,
-    };
   }
 }
 
@@ -169,11 +158,11 @@ class _ReportControls extends StatelessWidget {
   });
 
   final TextEditingController searchController;
-  final String statusFilter;
-  final String sortBy;
+  final ReportStatus? statusFilter;
+  final _ReportSort sortBy;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String> onStatusChanged;
-  final ValueChanged<String> onSortChanged;
+  final ValueChanged<ReportStatus?> onStatusChanged;
+  final ValueChanged<_ReportSort> onSortChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -192,41 +181,33 @@ class _ReportControls extends StatelessWidget {
               ),
               onChanged: onSearchChanged,
             );
-            final statusDropdown = DropdownButtonFormField<String>(
+            final statusDropdown = DropdownButtonFormField<ReportStatus?>(
               initialValue: statusFilter,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Status'),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: 'Submitted', child: Text('Submitted')),
-                DropdownMenuItem(
-                  value: 'In Progress',
-                  child: Text('In Progress'),
+              items: [
+                const DropdownMenuItem<ReportStatus?>(
+                  value: null,
+                  child: Text('All'),
                 ),
-                DropdownMenuItem(value: 'Resolved', child: Text('Resolved')),
+                ...ReportStatus.values.map((status) {
+                  return DropdownMenuItem<ReportStatus?>(
+                    value: status,
+                    child: Text(status.label),
+                  );
+                }),
               ],
               onChanged: (value) {
-                if (value != null) {
-                  onStatusChanged(value);
-                }
+                onStatusChanged(value);
               },
             );
-            final sortDropdown = DropdownButtonFormField<String>(
+            final sortDropdown = DropdownButtonFormField<_ReportSort>(
               initialValue: sortBy,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Sort by'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'Newest First',
-                  child: Text('Newest First'),
-                ),
-                DropdownMenuItem(
-                  value: 'Oldest First',
-                  child: Text('Oldest First'),
-                ),
-                DropdownMenuItem(value: 'Urgency', child: Text('Urgency')),
-                DropdownMenuItem(value: 'Status', child: Text('Status')),
-              ],
+              items: _ReportSort.values.map((sort) {
+                return DropdownMenuItem(value: sort, child: Text(sort.label));
+              }).toList(),
               onChanged: (value) {
                 if (value != null) {
                   onSortChanged(value);
@@ -263,43 +244,13 @@ class _ReportControls extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
+enum _ReportSort {
+  newestFirst('Newest First'),
+  oldestFirst('Oldest First'),
+  urgency('Urgency'),
+  status('Status');
 
-  final String status;
+  const _ReportSort(this.label);
 
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      'Resolved' => const Color(0xFF2F7D32),
-      'In Progress' => Theme.of(context).colorScheme.secondary,
-      _ => Theme.of(context).colorScheme.primary,
-    };
-
-    return Chip(
-      label: Text(status),
-      backgroundColor: color.withValues(alpha: 0.12),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700),
-      side: BorderSide(color: color.withValues(alpha: 0.35)),
-    );
-  }
-}
-
-String _formatDate(DateTime date) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  final String label;
 }

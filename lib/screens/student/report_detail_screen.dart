@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../models/maintenance_report.dart';
+import '../../models/report_options.dart';
+import '../../utils/date_formatter.dart';
+import '../../widgets/status_chip.dart';
 
 class ReportDetailScreen extends StatelessWidget {
   const ReportDetailScreen({super.key, required this.report});
@@ -29,9 +32,9 @@ class ReportDetailScreen extends StatelessWidget {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _StatusChip(status: report.status),
+                  StatusChip(status: report.status),
                   Text(
-                    '${report.reportId} - Submitted ${_formatDate(report.submittedAt)}',
+                    '${report.reportId} - Submitted ${formatDate(report.submittedAt)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFF506158),
                     ),
@@ -63,9 +66,12 @@ class ReportDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DetailRow(label: 'Category', value: report.category),
+                      _DetailRow(
+                        label: 'Category',
+                        value: report.category.label,
+                      ),
                       _DetailRow(label: 'Location', value: report.location),
-                      _DetailRow(label: 'Urgency', value: report.urgency),
+                      _DetailRow(label: 'Urgency', value: report.urgency.label),
                       _DetailRow(
                         label: 'Description',
                         value: report.description,
@@ -86,33 +92,14 @@ class ReportDetailScreen extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime date) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
-}
-
 class _StatusProgress extends StatelessWidget {
   const _StatusProgress({required this.currentStatus});
 
-  final String currentStatus;
+  final ReportStatus currentStatus;
 
   @override
   Widget build(BuildContext context) {
-    const statuses = ['Submitted', 'In Progress', 'Resolved'];
+    const statuses = ReportStatus.values;
     final currentIndex = statuses.indexOf(currentStatus);
 
     return Wrap(
@@ -131,7 +118,7 @@ class _StatusProgress extends StatelessWidget {
 class _ProgressStep extends StatelessWidget {
   const _ProgressStep({required this.status, required this.isActive});
 
-  final String status;
+  final ReportStatus status;
   final bool isActive;
 
   @override
@@ -157,33 +144,11 @@ class _ProgressStep extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            status,
+            status.label,
             style: TextStyle(color: color, fontWeight: FontWeight.w700),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      'Resolved' => const Color(0xFF2F7D32),
-      'In Progress' => Theme.of(context).colorScheme.secondary,
-      _ => Theme.of(context).colorScheme.primary,
-    };
-
-    return Chip(
-      label: Text(status),
-      backgroundColor: color.withValues(alpha: 0.12),
-      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700),
-      side: BorderSide(color: color.withValues(alpha: 0.35)),
     );
   }
 }

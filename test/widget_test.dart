@@ -182,6 +182,8 @@ Future<void> _pumpCampusFix(WidgetTester tester) async {
 }
 
 Future<void> _loginAsStudent(WidgetTester tester) async {
+  await tester.enterText(find.byType(TextField).at(0), '2026-0001');
+  await tester.enterText(find.byType(TextField).at(1), 'password');
   await tester.ensureVisible(find.text('Login as Student'));
   await tester.tap(find.text('Login as Student'));
   await tester.pumpAndSettle();

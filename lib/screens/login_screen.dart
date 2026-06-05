@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import 'admin/admin_login_screen.dart';
-import 'staff/staff_login_screen.dart';
+typedef StudentLoginHandler =
+    bool Function({required String identifier, required String password});
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key, required this.studentHomeBuilder});
+  const LoginScreen({super.key, required this.onStudentLogin});
 
-  final WidgetBuilder studentHomeBuilder;
+  final StudentLoginHandler onStudentLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,7 @@ class LoginScreen extends StatelessWidget {
                           children: [
                             const _LoginIntro(),
                             const SizedBox(height: 24),
-                            _LoginCard(studentHomeBuilder: studentHomeBuilder),
+                            _LoginCard(onStudentLogin: onStudentLogin),
                           ],
                         );
                       }
@@ -42,9 +43,7 @@ class LoginScreen extends StatelessWidget {
                           const SizedBox(width: 32),
                           SizedBox(
                             width: 420,
-                            child: _LoginCard(
-                              studentHomeBuilder: studentHomeBuilder,
-                            ),
+                            child: _LoginCard(onStudentLogin: onStudentLogin),
                           ),
                         ],
                       );
@@ -156,10 +155,46 @@ class _LoginIntro extends StatelessWidget {
   }
 }
 
-class _LoginCard extends StatelessWidget {
-  const _LoginCard({required this.studentHomeBuilder});
+class _LoginCard extends StatefulWidget {
+  const _LoginCard({required this.onStudentLogin});
 
-  final WidgetBuilder studentHomeBuilder;
+  final StudentLoginHandler onStudentLogin;
+
+  @override
+  State<_LoginCard> createState() => _LoginCardState();
+}
+
+class _LoginCardState extends State<_LoginCard> {
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _identifierController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _login() {
+    final loginSucceeded = widget.onStudentLogin(
+      identifier: _identifierController.text,
+      password: _passwordController.text,
+    );
+
+    if (!loginSucceeded) {
+      setState(() {
+        _errorText = 'Enter your student ID/email and password.';
+      });
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    context.go('/student');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,28 +213,37 @@ class _LoginCard extends StatelessWidget {
             const SizedBox(height: 8),
             const Text('Use your student account to continue.'),
             const SizedBox(height: 20),
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _identifierController,
+              decoration: const InputDecoration(
                 labelText: 'School email or student ID',
                 prefixIcon: Icon(Icons.person),
               ),
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 14),
-            const TextField(
+            TextField(
+              controller: _passwordController,
               obscureText: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Password',
                 prefixIcon: Icon(Icons.lock),
               ),
+              onSubmitted: (_) => _login(),
             ),
+            if (_errorText != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _errorText!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: studentHomeBuilder),
-                );
-              },
+              onPressed: _login,
               icon: const Icon(Icons.login),
               label: const Text('Login as Student'),
             ),
@@ -216,23 +260,13 @@ class _LoginCard extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminLoginScreen(),
-                      ),
-                    );
+                    context.push('/admin-login');
                   },
                   child: const Text('Admin Login'),
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const StaffLoginScreen(),
-                      ),
-                    );
+                    context.push('/staff-login');
                   },
                   child: const Text('Staff Login'),
                 ),

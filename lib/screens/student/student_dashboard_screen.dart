@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
-import 'my_reports_screen.dart';
-import 'report_detail_screen.dart';
-import 'submit_report_screen.dart';
+import '../../models/report_options.dart';
+import '../../utils/date_formatter.dart';
+import '../../widgets/status_chip.dart';
 
 class StudentDashboardScreen extends StatelessWidget {
   const StudentDashboardScreen({
     super.key,
     required this.reports,
-    required this.onReportCreated,
+    required this.onLogout,
   });
 
   final List<MaintenanceReport> reports;
-  final ValueChanged<MaintenanceReport> onReportCreated;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
-    final submittedCount = _countReportsByStatus('Submitted');
-    final inProgressCount = _countReportsByStatus('In Progress');
-    final resolvedCount = _countReportsByStatus('Resolved');
+    final submittedCount = _countReportsByStatus(ReportStatus.submitted);
+    final inProgressCount = _countReportsByStatus(ReportStatus.inProgress);
+    final resolvedCount = _countReportsByStatus(ReportStatus.resolved);
     final highUrgencyCount = reports
         .where(
-          (report) => report.urgency == 'High' && report.status != 'Resolved',
+          (report) =>
+              report.urgency == ReportUrgency.high &&
+              report.status != ReportStatus.resolved,
         )
         .length;
 
@@ -55,7 +58,7 @@ class StudentDashboardScreen extends StatelessWidget {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: onLogout,
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
@@ -70,7 +73,7 @@ class StudentDashboardScreen extends StatelessWidget {
             children: [
               _DashboardHeader(
                 highUrgencyCount: highUrgencyCount,
-                onSubmitPressed: () => _openSubmitForm(context),
+                onSubmitPressed: () => context.push('/student/reports/new'),
               ),
               const SizedBox(height: 20),
               LayoutBuilder(
@@ -87,7 +90,7 @@ class StudentDashboardScreen extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _StatusCard(
-                          label: 'Submitted',
+                          label: ReportStatus.submitted.label,
                           value: '$submittedCount',
                           icon: Icons.pending_actions,
                         ),
@@ -95,7 +98,7 @@ class StudentDashboardScreen extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _StatusCard(
-                          label: 'In Progress',
+                          label: ReportStatus.inProgress.label,
                           value: '$inProgressCount',
                           icon: Icons.engineering,
                         ),
@@ -103,7 +106,7 @@ class StudentDashboardScreen extends StatelessWidget {
                       SizedBox(
                         width: cardWidth,
                         child: _StatusCard(
-                          label: 'Resolved',
+                          label: ReportStatus.resolved.label,
                           value: '$resolvedCount',
                           icon: Icons.check_circle,
                         ),
@@ -130,7 +133,7 @@ class StudentDashboardScreen extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: () => _openMyReports(context),
+                        onPressed: () => context.push('/student/reports'),
                         icon: const Icon(Icons.list_alt),
                         label: const Text('My Reports'),
                       ),
@@ -170,11 +173,13 @@ class StudentDashboardScreen extends StatelessWidget {
                               ),
                             ),
                             subtitle: Text(
-                              '${report.reportId} - ${_formatDate(report.submittedAt)}\n${report.category} - ${report.location}',
+                              '${report.reportId} - ${formatDate(report.submittedAt)}\n${report.category.label} - ${report.location}',
                             ),
                             isThreeLine: true,
-                            trailing: _StatusPill(status: report.status),
-                            onTap: () => _openReportDetails(context, report),
+                            trailing: StatusChip(status: report.status),
+                            onTap: () => context.push(
+                              '/student/reports/${report.reportId}',
+                            ),
                           );
                         }),
                     ],
@@ -188,74 +193,9 @@ class StudentDashboardScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _openSubmitForm(BuildContext context) async {
-    final report = await Navigator.push<MaintenanceReport>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SubmitReportScreen(nextReportId: _nextReportId),
-      ),
-    );
-
-    if (report == null) {
-      return;
-    }
-
-    onReportCreated(report);
-
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Report submitted.')));
-  }
-
-  void _openMyReports(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MyReportsScreen(reports: reports),
-      ),
-    );
-  }
-
-  void _openReportDetails(BuildContext context, MaintenanceReport report) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReportDetailScreen(report: report),
-      ),
-    );
-  }
-
-  int _countReportsByStatus(String status) {
+  int _countReportsByStatus(ReportStatus status) {
     return reports.where((report) => report.status == status).length;
   }
-
-  String get _nextReportId {
-    final nextNumber = reports.length + 1;
-    return 'CF-${nextNumber.toString().padLeft(4, '0')}';
-  }
-}
-
-String _formatDate(DateTime date) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
 }
 
 class _DashboardHeader extends StatelessWidget {
@@ -388,38 +328,6 @@ class _StatusCard extends StatelessWidget {
               child: Icon(icon, color: Theme.of(context).colorScheme.secondary),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      'Resolved' => const Color(0xFF2F7D32),
-      'In Progress' => const Color(0xFF0D7C66),
-      _ => const Color(0xFF114B3A),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );

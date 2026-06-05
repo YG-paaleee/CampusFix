@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
+import '../../models/report_options.dart';
 
 class SubmitReportScreen extends StatefulWidget {
-  const SubmitReportScreen({super.key, required this.nextReportId});
+  const SubmitReportScreen({
+    super.key,
+    required this.studentId,
+    required this.nextReportId,
+    required this.onReportCreated,
+  });
 
+  final String studentId;
   final String nextReportId;
+  final ValueChanged<MaintenanceReport> onReportCreated;
 
   @override
   State<SubmitReportScreen> createState() => _SubmitReportScreenState();
@@ -17,8 +26,8 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String _category = 'Classroom';
-  String _urgency = 'Medium';
+  ReportCategory _category = ReportCategory.classroom;
+  ReportUrgency _urgency = ReportUrgency.medium;
 
   @override
   void dispose() {
@@ -34,17 +43,22 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     }
 
     final report = MaintenanceReport(
+      studentId: widget.studentId,
       reportId: widget.nextReportId,
       submittedAt: DateTime.now(),
       title: _titleController.text.trim(),
       location: _locationController.text.trim(),
       category: _category,
       urgency: _urgency,
-      status: 'Submitted',
+      status: ReportStatus.submitted,
       description: _descriptionController.text.trim(),
     );
 
-    Navigator.pop(context, report);
+    widget.onReportCreated(report);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Report submitted.')));
+    context.go('/student');
   }
 
   @override
@@ -91,41 +105,24 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
+                        DropdownButtonFormField<ReportCategory>(
                           initialValue: _category,
                           decoration: const InputDecoration(
                             labelText: 'Category',
                             border: OutlineInputBorder(),
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'Classroom',
-                              child: Text('Classroom'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Electrical',
-                              child: Text('Electrical'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Plumbing',
-                              child: Text('Plumbing'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Restroom',
-                              child: Text('Restroom'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'IT Equipment',
-                              child: Text('IT Equipment'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Others',
-                              child: Text('Others'),
-                            ),
-                          ],
+                          items: ReportCategory.values.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(category.label),
+                            );
+                          }).toList(),
                           onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
                             setState(() {
-                              _category = value!;
+                              _category = value;
                             });
                           },
                         ),
@@ -144,26 +141,24 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
+                        DropdownButtonFormField<ReportUrgency>(
                           initialValue: _urgency,
                           decoration: const InputDecoration(
                             labelText: 'Urgency',
                             border: OutlineInputBorder(),
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 'Low', child: Text('Low')),
-                            DropdownMenuItem(
-                              value: 'Medium',
-                              child: Text('Medium'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'High',
-                              child: Text('High'),
-                            ),
-                          ],
+                          items: ReportUrgency.values.map((urgency) {
+                            return DropdownMenuItem(
+                              value: urgency,
+                              child: Text(urgency.label),
+                            );
+                          }).toList(),
                           onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
                             setState(() {
-                              _urgency = value!;
+                              _urgency = value;
                             });
                           },
                         ),
