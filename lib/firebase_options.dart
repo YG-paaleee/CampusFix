@@ -2,15 +2,24 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 class DefaultFirebaseOptions {
-  static const _placeholder = 'REPLACE_ME';
+  static const _apiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  static const _appId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const _messagingSenderId = String.fromEnvironment(
+    'FIREBASE_MESSAGING_SENDER_ID',
+  );
+  static const _projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
+  static const _authDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
+  static const _storageBucket = String.fromEnvironment(
+    'FIREBASE_STORAGE_BUCKET',
+  );
 
   static bool get isConfigured {
-    return web.apiKey != _placeholder &&
-        web.appId != _placeholder &&
-        web.messagingSenderId != _placeholder &&
-        web.projectId != _placeholder &&
-        web.authDomain != 'REPLACE_ME.firebaseapp.com' &&
-        web.storageBucket != 'REPLACE_ME.appspot.com';
+    return _apiKey.isNotEmpty &&
+        _appId.isNotEmpty &&
+        _messagingSenderId.isNotEmpty &&
+        _projectId.isNotEmpty &&
+        _authDomain.isNotEmpty &&
+        _storageBucket.isNotEmpty;
   }
 
   static FirebaseOptions get currentPlatform {
@@ -22,11 +31,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: "AIzaSyDWMGw_cRiP2zEAmrsku82uuoaVFsFUND0",
-    appId: "1:593978553099:web:c1b9416825368b7feaa80e",
-    messagingSenderId: "593978553099",
-    projectId: "campusfix-81904",
-    authDomain: "campusfix-81904.firebaseapp.com",
-    storageBucket: "campusfix-81904.firebasestorage.app",
+    apiKey: _apiKey,
+    appId: _appId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    authDomain: _authDomain,
+    storageBucket: _storageBucket,
   );
 }

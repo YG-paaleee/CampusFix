@@ -23,8 +23,23 @@ The app has Firebase Firestore support for student reports, but it will keep usi
 3. Enable Cloud Firestore.
 4. Enable Firebase Authentication.
 5. In Authentication > Sign-in method, enable Email/Password.
-6. Copy the web Firebase config values.
-7. Replace the `REPLACE_ME` values in `lib/firebase_options.dart`.
+6. Copy `firebase_defines.example.json` to `firebase_defines.json`.
+7. Put the real web Firebase config values in `firebase_defines.json`.
+8. Run the app with the local config file:
+
+```powershell
+flutter run -d chrome --dart-define-from-file=firebase_defines.json
+```
+
+For the local web-server preview:
+
+```powershell
+flutter run -d web-server --release --web-hostname localhost --web-port 5173 --dart-define-from-file=firebase_defines.json
+```
+
+Do not commit `firebase_defines.json`. Real Firebase keys stay local only.
+
+If a Firebase or Google API key was already pushed to GitHub, remove it from the code, then rotate or restrict that key in Google Cloud/Firebase before closing the security alert.
 
 Firestore collections:
 
