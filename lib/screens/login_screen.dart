@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 typedef StudentLoginHandler =
-    bool Function({required String identifier, required String password});
+    Future<String?> Function({
+      required String identifier,
+      required String password,
+    });
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key, required this.onStudentLogin});
@@ -168,6 +171,7 @@ class _LoginCardState extends State<_LoginCard> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _errorText;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -176,15 +180,25 @@ class _LoginCardState extends State<_LoginCard> {
     super.dispose();
   }
 
-  void _login() {
-    final loginSucceeded = widget.onStudentLogin(
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+      _errorText = null;
+    });
+
+    final errorMessage = await widget.onStudentLogin(
       identifier: _identifierController.text,
       password: _passwordController.text,
     );
 
-    if (!loginSucceeded) {
+    if (!mounted) {
+      return;
+    }
+
+    if (errorMessage != null) {
       setState(() {
-        _errorText = 'Enter your student ID/email and password.';
+        _isLoading = false;
+        _errorText = errorMessage;
       });
       return;
     }
@@ -216,7 +230,9 @@ class _LoginCardState extends State<_LoginCard> {
             TextField(
               controller: _identifierController,
               decoration: const InputDecoration(
-                labelText: 'School email or student ID',
+                labelText: 'Student ID or school email',
+                helperText:
+                    'Example: 2023-8-0099 or 202380099@psu.palawan.edu.ph',
                 prefixIcon: Icon(Icons.person),
               ),
               textInputAction: TextInputAction.next,
@@ -243,9 +259,15 @@ class _LoginCardState extends State<_LoginCard> {
             ],
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: _login,
+              onPressed: _isLoading ? null : _login,
               icon: const Icon(Icons.login),
-              label: const Text('Login as Student'),
+              label: Text(_isLoading ? 'Signing in...' : 'Login as Student'),
+            ),
+            TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () => context.push('/student/signup'),
+              child: const Text('Create student account'),
             ),
             const SizedBox(height: 12),
             Text(

@@ -1,22 +1,37 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'firebase_options.dart';
 import 'screens/admin/admin_login_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/staff/staff_login_screen.dart';
 import 'screens/student/my_reports_screen.dart';
 import 'screens/student/report_detail_screen.dart';
 import 'screens/student/student_dashboard_screen.dart';
+import 'screens/student/student_signup_screen.dart';
 import 'screens/student/submit_report_screen.dart';
 import 'services/report_service.dart';
 import 'services/student_auth_service.dart';
 
-void main() {
-  runApp(const CampusFixApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final firebaseServices = await _configureFirebase();
+
+  runApp(
+    CampusFixApp(
+      firestore: firebaseServices.firestore,
+      authApiKey: firebaseServices.authApiKey,
+    ),
+  );
 }
 
 class CampusFixApp extends StatefulWidget {
-  const CampusFixApp({super.key});
+  const CampusFixApp({super.key, this.firestore, this.authApiKey});
+
+  final FirebaseFirestore? firestore;
+  final String? authApiKey;
 
   @override
   State<CampusFixApp> createState() => _CampusFixAppState();
@@ -30,20 +45,26 @@ class _CampusFixAppState extends State<CampusFixApp> {
   @override
   void initState() {
     super.initState();
-    _authService = StudentAuthService();
-    _reportService = ReportService();
+    _authService = StudentAuthService(
+      authApiKey: widget.authApiKey,
+      firestore: widget.firestore,
+    );
+    _reportService = ReportService(firestore: widget.firestore);
+    _restoreStudentSession();
     _router = GoRouter(
       refreshListenable: _authService,
       redirect: (context, state) {
         final path = state.uri.path;
+        final isSignupRoute = path == '/student/signup';
         final isStudentRoute =
-            path == '/student' || path.startsWith('/student/');
+            (path == '/student' || path.startsWith('/student/')) &&
+            !isSignupRoute;
 
         if (!_authService.isLoggedIn && isStudentRoute) {
           return '/';
         }
 
-        if (_authService.isLoggedIn && path == '/') {
+        if (_authService.isLoggedIn && (path == '/' || isSignupRoute)) {
           return '/student';
         }
 
@@ -53,9 +74,10 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(
           path: '/',
           builder: (context, state) {
-            return LoginScreen(onStudentLogin: _authService.login);
+            return LoginScreen(onStudentLogin: _loginStudent);
           },
         ),
+        GoRoute(path: '/student/signup', builder: _buildStudentSignup),
         GoRoute(
           path: '/admin-login',
           builder: (context, state) => const AdminLoginScreen(),
@@ -96,8 +118,10 @@ class _CampusFixAppState extends State<CampusFixApp> {
       animation: _reportService,
       builder: (context, _) {
         return StudentDashboardScreen(
-          reports: _reportService.reportsForStudent(student.studentId),
-          onLogout: _authService.logout,
+          reports: _reportService.reportsForStudent(student),
+          onLogout: () {
+            _authService.logout();
+          },
         );
       },
     );
@@ -114,7 +138,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
       animation: _reportService,
       builder: (context, _) {
         return MyReportsScreen(
-          reports: _reportService.reportsForStudent(student.studentId),
+          reports: _reportService.reportsForStudent(student),
         );
       },
     );
@@ -128,8 +152,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
     }
 
     return SubmitReportScreen(
+      studentUid: student.uid,
       studentId: student.studentId,
-      nextReportId: _reportService.nextReportId,
+      createReportId: _reportService.createReportId,
       onReportCreated: _reportService.addReport,
     );
   }
@@ -143,7 +168,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
     }
 
     final report = _reportService.findStudentReport(
-      studentId: student.studentId,
+      student: student,
       reportId: reportId,
     );
 
@@ -154,6 +179,59 @@ class _CampusFixAppState extends State<CampusFixApp> {
     return ReportDetailScreen(report: report);
   }
 
+  Widget _buildStudentSignup(BuildContext context, GoRouterState state) {
+    return StudentSignupScreen(onStudentRegistered: _registerStudent);
+  }
+
+  Future<void> _restoreStudentSession() async {
+    await _authService.restoreSession();
+    final student = _authService.currentStudent;
+
+    if (student != null) {
+      await _reportService.loadReports(student: student);
+    }
+  }
+
+  Future<String?> _loginStudent({
+    required String identifier,
+    required String password,
+  }) async {
+    final success = await _authService.login(
+      identifier: identifier,
+      password: password,
+    );
+    final student = _authService.currentStudent;
+
+    if (success && student != null) {
+      await _reportService.loadReports(student: student);
+      return null;
+    }
+
+    return _authService.errorMessage ?? 'Could not sign in.';
+  }
+
+  Future<String?> _registerStudent({
+    required String fullName,
+    required String studentId,
+    required String email,
+    required String password,
+  }) async {
+    final success = await _authService.registerStudent(
+      fullName: fullName,
+      studentId: studentId,
+      email: email,
+      password: password,
+    );
+    final student = _authService.currentStudent;
+
+    if (success && student != null) {
+      await _reportService.loadReports(student: student);
+      return null;
+    }
+
+    return _authService.errorMessage ?? 'Could not create account.';
+  }
+
   @override
   void dispose() {
     _router.dispose();
@@ -161,6 +239,25 @@ class _CampusFixAppState extends State<CampusFixApp> {
     _reportService.dispose();
     super.dispose();
   }
+}
+
+Future<_FirebaseServices> _configureFirebase() async {
+  if (!DefaultFirebaseOptions.isConfigured) {
+    return const _FirebaseServices();
+  }
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  return _FirebaseServices(
+    firestore: FirebaseFirestore.instance,
+    authApiKey: DefaultFirebaseOptions.currentPlatform.apiKey,
+  );
+}
+
+class _FirebaseServices {
+  const _FirebaseServices({this.firestore, this.authApiKey});
+
+  final FirebaseFirestore? firestore;
+  final String? authApiKey;
 }
 
 final _campusFixColorScheme =

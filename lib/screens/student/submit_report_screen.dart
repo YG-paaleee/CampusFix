@@ -4,17 +4,22 @@ import 'package:go_router/go_router.dart';
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
 
+typedef ReportCreatedHandler = Future<void> Function(MaintenanceReport report);
+typedef ReportIdGenerator = String Function();
+
 class SubmitReportScreen extends StatefulWidget {
   const SubmitReportScreen({
     super.key,
+    required this.studentUid,
     required this.studentId,
-    required this.nextReportId,
+    required this.createReportId,
     required this.onReportCreated,
   });
 
+  final String studentUid;
   final String studentId;
-  final String nextReportId;
-  final ValueChanged<MaintenanceReport> onReportCreated;
+  final ReportIdGenerator createReportId;
+  final ReportCreatedHandler onReportCreated;
 
   @override
   State<SubmitReportScreen> createState() => _SubmitReportScreenState();
@@ -37,14 +42,15 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
     super.dispose();
   }
 
-  void _submitReport() {
+  Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     final report = MaintenanceReport(
+      studentUid: widget.studentUid,
       studentId: widget.studentId,
-      reportId: widget.nextReportId,
+      reportId: widget.createReportId(),
       submittedAt: DateTime.now(),
       title: _titleController.text.trim(),
       location: _locationController.text.trim(),
@@ -54,7 +60,12 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
       description: _descriptionController.text.trim(),
     );
 
-    widget.onReportCreated(report);
+    await widget.onReportCreated(report);
+
+    if (!mounted) {
+      return;
+    }
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Report submitted.')));

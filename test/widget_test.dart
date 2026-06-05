@@ -1,8 +1,38 @@
 import 'package:campusfix/main.dart';
+import 'package:campusfix/services/report_service.dart';
+import 'package:campusfix/utils/student_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('student id converts to PSU school email', () {
+    expect(emailFromStudentId('2023-8-0099'), '202380099@psu.palawan.edu.ph');
+    expect(studentIdFromEmail('202380099@psu.palawan.edu.ph'), '2023-8-0099');
+  });
+
+  test('student login accepts only PSU student identity format', () {
+    expect(
+      normalizeStudentLoginIdentifier('2023-8-0099'),
+      '202380099@psu.palawan.edu.ph',
+    );
+    expect(
+      normalizeStudentLoginIdentifier('202380099@psu.palawan.edu.ph'),
+      '202380099@psu.palawan.edu.ph',
+    );
+    expect(normalizeStudentLoginIdentifier('student@example.com'), isNull);
+  });
+
+  test('generated fallback report IDs are unique', () {
+    final reportService = ReportService();
+    final ids = List.generate(
+      20,
+      (_) => reportService.createReportId(),
+    ).toSet();
+
+    expect(ids.length, 20);
+    expect(ids.every((id) => id.startsWith('CF-')), isTrue);
+  });
+
   testWidgets('login screen renders first', (WidgetTester tester) async {
     await _pumpCampusFix(tester);
 
@@ -21,6 +51,21 @@ void main() {
     expect(find.text('Student Dashboard'), findsOneWidget);
     expect(find.text('Submit Report'), findsOneWidget);
     expect(find.text('My Reports'), findsOneWidget);
+  });
+
+  testWidgets('create account link opens student registration', (
+    WidgetTester tester,
+  ) async {
+    await _pumpCampusFix(tester);
+
+    await tester.ensureVisible(find.text('Create student account'));
+    await tester.tap(find.text('Create student account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Student Registration'), findsOneWidget);
+    expect(find.text('Full name'), findsOneWidget);
+    expect(find.text('Student ID'), findsOneWidget);
+    expect(find.text('Confirm password'), findsOneWidget);
   });
 
   testWidgets('student can logout back to login screen', (
@@ -182,7 +227,7 @@ Future<void> _pumpCampusFix(WidgetTester tester) async {
 }
 
 Future<void> _loginAsStudent(WidgetTester tester) async {
-  await tester.enterText(find.byType(TextField).at(0), '2026-0001');
+  await tester.enterText(find.byType(TextField).at(0), '2023-8-0099');
   await tester.enterText(find.byType(TextField).at(1), 'password');
   await tester.ensureVisible(find.text('Login as Student'));
   await tester.tap(find.text('Login as Student'));
