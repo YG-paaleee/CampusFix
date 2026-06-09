@@ -4,15 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'firebase_options.dart';
+import 'models/report_options.dart';
+import 'screens/admin/admin_all_reports_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/admin_login_screen.dart';
+import 'screens/admin/admin_report_management_screen.dart';
+import 'screens/admin/admin_staff_management_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/staff/staff_assigned_reports_screen.dart';
+import 'screens/staff/staff_dashboard_screen.dart';
 import 'screens/staff/staff_login_screen.dart';
 import 'screens/student/my_reports_screen.dart';
 import 'screens/student/report_detail_screen.dart';
 import 'screens/student/student_dashboard_screen.dart';
 import 'screens/student/student_signup_screen.dart';
 import 'screens/student/submit_report_screen.dart';
+import 'services/admin_auth_service.dart';
+import 'services/admin_report_service.dart';
+import 'services/admin_staff_service.dart';
 import 'services/report_service.dart';
+import 'services/staff_auth_service.dart';
 import 'services/student_auth_service.dart';
 
 Future<void> main() async {
@@ -39,7 +50,11 @@ class CampusFixApp extends StatefulWidget {
 
 class _CampusFixAppState extends State<CampusFixApp> {
   late final StudentAuthService _authService;
+  late final AdminAuthService _adminAuthService;
+  late final StaffAuthService _staffAuthService;
   late final ReportService _reportService;
+  late final AdminReportService _adminReportService;
+  late final AdminStaffService _adminStaffService;
   late final GoRouter _router;
 
   @override
@@ -49,12 +64,18 @@ class _CampusFixAppState extends State<CampusFixApp> {
       authApiKey: widget.authApiKey,
       firestore: widget.firestore,
     );
+    _adminAuthService = AdminAuthService();
+    _staffAuthService = StaffAuthService();
     _reportService = ReportService(firestore: widget.firestore);
+    _adminReportService = AdminReportService();
+    _adminStaffService = AdminStaffService();
     _restoreStudentSession();
     _router = GoRouter(
-      refreshListenable: _authService,
+      refreshListenable: Listenable.merge([_authService, _adminAuthService, _staffAuthService]),
       redirect: (context, state) {
         final path = state.uri.path;
+        
+        // --- Student Routing Logic ---
         final isSignupRoute = path == '/student/signup';
         final isStudentRoute =
             (path == '/student' || path.startsWith('/student/')) &&
@@ -66,6 +87,30 @@ class _CampusFixAppState extends State<CampusFixApp> {
 
         if (_authService.isLoggedIn && (path == '/' || isSignupRoute)) {
           return '/student';
+        }
+
+        // --- Admin Routing Logic ---
+        final isAdminRoute = path == '/admin' || path.startsWith('/admin/');
+        final isAdminLoginRoute = path == '/admin-login';
+
+        if (!_adminAuthService.isLoggedIn && isAdminRoute) {
+          return '/admin-login';
+        }
+
+        if (_adminAuthService.isLoggedIn && isAdminLoginRoute) {
+          return '/admin';
+        }
+
+        // --- Staff Routing Logic ---
+        final isStaffRoute = path == '/staff' || path.startsWith('/staff/');
+        final isStaffLoginRoute = path == '/staff-login';
+
+        if (!_staffAuthService.isLoggedIn && isStaffRoute) {
+          return '/staff-login';
+        }
+
+        if (_staffAuthService.isLoggedIn && isStaffLoginRoute) {
+          return '/staff';
         }
 
         return null;
@@ -80,11 +125,135 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(path: '/student/signup', builder: _buildStudentSignup),
         GoRoute(
           path: '/admin-login',
-          builder: (context, state) => const AdminLoginScreen(),
+          builder: (context, state) => AdminLoginScreen(onAdminLogin: _loginAdmin),
+        ),
+        GoRoute(
+          path: '/admin',
+          builder: (context, state) => AnimatedBuilder(
+            animation: _adminReportService,
+            builder: (context, _) {
+              return AdminDashboardScreen(
+                totalReports: _adminReportService.totalReports,
+                pendingReports: _adminReportService.pendingReports,
+                resolvedReports: _adminReportService.resolvedReports,
+                urgentReports: _adminReportService.urgentReports,
+                onLogout: () {
+                  _adminAuthService.logout();
+                },
+              );
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/admin/reports',
+          builder: (context, state) => AnimatedBuilder(
+            animation: _adminReportService,
+            builder: (context, _) {
+              return AdminAllReportsScreen(
+                reports: _adminReportService.reports,
+              );
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/admin/reports/:reportId',
+          builder: (context, state) {
+            final reportId = state.pathParameters['reportId'];
+            if (reportId == null) return const SizedBox.shrink();
+
+            return AnimatedBuilder(
+              animation: _adminReportService,
+              builder: (context, _) {
+                final report = _adminReportService.getReportById(reportId);
+                if (report == null) {
+                  return Scaffold(
+                    appBar: AppBar(title: const Text('Not Found')),
+                    body: const Center(child: Text('Report not found')),
+                  );
+                }
+
+                return AdminReportManagementScreen(
+                  report: report,
+                  onStatusChanged: (newStatus) {
+                    _adminReportService.updateReportStatus(reportId, newStatus);
+                  },
+                  onStaffAssigned: (staffId, staffName) {
+                    _adminReportService.assignStaff(reportId, staffId, staffName);
+                  },
+                  onNoteAdded: (note) {
+                    _adminReportService.addReportNote(reportId, note);
+                  },
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
+          path: '/admin/staff',
+          builder: (context, state) => AnimatedBuilder(
+            animation: _adminStaffService,
+            builder: (context, _) {
+              return AdminStaffManagementScreen(
+                staffMembers: _adminStaffService.staffMembers,
+                onAddStaff: _adminStaffService.addStaff,
+                onToggleStatus: _adminStaffService.toggleStaffStatus,
+                onEditStaff: _adminStaffService.editStaffDetails,
+              );
+            },
+          ),
         ),
         GoRoute(
           path: '/staff-login',
-          builder: (context, state) => const StaffLoginScreen(),
+          builder: (context, state) => StaffLoginScreen(onStaffLogin: _loginStaff),
+        ),
+        GoRoute(
+          path: '/staff',
+          builder: (context, state) {
+            return AnimatedBuilder(
+              animation: _adminReportService,
+              builder: (context, _) {
+                final staffId = _staffAuthService.currentStaffId;
+                if (staffId == null) return const SizedBox.shrink();
+
+                final staffReports = _adminReportService.reports
+                    .where((r) => r.assignedStaffId == staffId)
+                    .toList();
+                
+                final pendingTasks = staffReports
+                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected)
+                    .length;
+                final urgentTasks = staffReports
+                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected && r.urgency == ReportUrgency.high)
+                    .length;
+
+                return StaffDashboardScreen(
+                  pendingTasks: pendingTasks,
+                  urgentTasks: urgentTasks,
+                  onLogout: () {
+                    _staffAuthService.logout();
+                  },
+                );
+              },
+            );
+          },
+        ),
+        GoRoute(
+          path: '/staff/assignments',
+          builder: (context, state) {
+            return AnimatedBuilder(
+              animation: _adminReportService,
+              builder: (context, _) {
+                final staffId = _staffAuthService.currentStaffId;
+                if (staffId == null) return const SizedBox.shrink();
+
+                final staffReports = _adminReportService.reports
+                    .where((r) => r.assignedStaffId == staffId)
+                    .toList();
+
+                return StaffAssignedReportsScreen(reports: staffReports);
+              },
+            );
+          },
         ),
         GoRoute(path: '/student', builder: _buildStudentDashboard),
         GoRoute(path: '/student/reports', builder: _buildMyReports),
@@ -232,11 +401,47 @@ class _CampusFixAppState extends State<CampusFixApp> {
     return _authService.errorMessage ?? 'Could not create account.';
   }
 
+  Future<String?> _loginAdmin({
+    required String email,
+    required String password,
+  }) async {
+    final success = await _adminAuthService.login(
+      email: email,
+      password: password,
+    );
+
+    if (success) {
+      return null;
+    }
+
+    return _adminAuthService.errorMessage ?? 'Could not sign in as Admin.';
+  }
+
+  Future<String?> _loginStaff({
+    required String email,
+    required String password,
+  }) async {
+    final success = await _staffAuthService.login(
+      email: email,
+      password: password,
+    );
+
+    if (success) {
+      return null;
+    }
+
+    return _staffAuthService.errorMessage ?? 'Could not sign in as Staff.';
+  }
+
   @override
   void dispose() {
     _router.dispose();
     _authService.dispose();
+    _adminAuthService.dispose();
+    _staffAuthService.dispose();
     _reportService.dispose();
+    _adminReportService.dispose();
+    _adminStaffService.dispose();
     super.dispose();
   }
 }
