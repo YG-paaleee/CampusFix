@@ -81,7 +81,7 @@ void main() {
     expect(find.text('Login as Student'), findsOneWidget);
   });
 
-  testWidgets('admin login link opens admin placeholder page', (
+  testWidgets('admin login link opens admin login form', (
     WidgetTester tester,
   ) async {
     await _pumpCampusFix(tester);
@@ -90,10 +90,10 @@ void main() {
     await tester.tap(find.text('Admin Login'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Admin page placeholder'), findsOneWidget);
+    expect(find.text('Admin Access'), findsOneWidget);
   });
 
-  testWidgets('staff login link opens staff placeholder page', (
+  testWidgets('staff login link opens staff login form', (
     WidgetTester tester,
   ) async {
     await _pumpCampusFix(tester);
@@ -102,7 +102,7 @@ void main() {
     await tester.tap(find.text('Staff Login'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Staff page placeholder'), findsOneWidget);
+    expect(find.text('Maintenance Staff Login'), findsOneWidget);
   });
 
   testWidgets('submit report button opens form screen', (

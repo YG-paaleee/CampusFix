@@ -1,6 +1,7 @@
 # Miscellaneous
 *.class
 *.log
+flutter_*.png
 *.pyc
 *.swp
 .DS_Store

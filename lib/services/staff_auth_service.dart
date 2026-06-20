@@ -16,7 +16,10 @@ class StaffAuthService extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 600));
 
     if (email == 'staff@campus.edu' && password == 'password') {
-      _currentStaffId = 'STAFF-001'; // Mock staff ID
+      // Must match a staff id the admin can assign (see AdminStaffService and
+      // the assignable list in AdminReportManagementScreen), otherwise this
+      // staff member would never see any reports assigned to them.
+      _currentStaffId = 's1'; // John Doe
       _errorMessage = null;
       notifyListeners();
       return true;
