@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../theme/app_colors.dart';
+
 class StaffLoginScreen extends StatefulWidget {
   const StaffLoginScreen({super.key, required this.onStaffLogin});
 
-  final Future<String?> Function({required String email, required String password}) onStaffLogin;
+  final Future<String?> Function({required String email, required String password})
+  onStaffLogin;
 
   @override
   State<StaffLoginScreen> createState() => _StaffLoginScreenState();
@@ -53,43 +56,107 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
       appBar: AppBar(title: const Text('Staff Login')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Maintenance Staff Login',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                if (_error != null) ...[
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Card(
+            margin: const EdgeInsets.all(24),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: const BoxDecoration(
+                        color: AppColors.brandSoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.handyman_rounded,
+                        color: AppColors.brand,
+                        size: 28,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
+                  const Text(
+                    'Maintenance Staff Login',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Sign in to view and update your assigned repairs.',
+                    style: TextStyle(color: AppColors.inkSoft),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    onSubmitted: (_) => _login(),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusRejectedBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(
+                          color: AppColors.statusRejected,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: _isLoading ? null : _login,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.login),
+                    label: Text(_isLoading ? 'Signing in...' : 'Login'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => context.go('/'),
+                    child: const Text('Return to Student Portal'),
+                  ),
                 ],
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isLoading ? null : _login,
-                  child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Login'),
-                ),
-              ],
+              ),
             ),
           ),
         ),

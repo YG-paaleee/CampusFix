@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../theme/app_colors.dart';
+import '../../widgets/header_banner.dart';
+import '../../widgets/stat_card.dart';
+
 class StaffDashboardScreen extends StatelessWidget {
   const StaffDashboardScreen({
     super.key,
@@ -28,85 +32,87 @@ class StaffDashboardScreen extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Welcome, Maintenance Team',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF17211C),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView(
+              padding: const EdgeInsets.all(24.0),
+              children: [
+                const HeaderBanner(
+                  eyebrow: 'Maintenance Staff',
+                  title: 'Welcome, Maintenance Team',
+                  subtitle: 'Here is your current task summary.',
+                  icon: Icons.handyman_outlined,
+                ),
+                const SizedBox(height: 24),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 520;
+                    const spacing = 16.0;
+
+                    final pendingCard = StatCard(
+                      label: 'My Pending Tasks',
+                      value: pendingTasks.toString(),
+                      icon: Icons.pending_actions_rounded,
+                      color: AppColors.statusInProgress,
+                    );
+                    final urgentCard = StatCard(
+                      label: 'Urgent Repairs',
+                      value: urgentTasks.toString(),
+                      icon: Icons.warning_amber_rounded,
+                      color: AppColors.urgencyHigh,
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        children: [
+                          pendingCard,
+                          const SizedBox(height: spacing),
+                          urgentCard,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: pendingCard),
+                        const SizedBox(width: spacing),
+                        Expanded(child: urgentCard),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Quick actions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      context.go('/staff/assignments');
+                    },
+                    icon: const Icon(Icons.assignment),
+                    label: const Text('View My Assignments'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 18,
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Here is your current task summary.',
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.pending_actions, size: 40, color: Colors.orange),
-                                const SizedBox(height: 16),
-                                Text(
-                                  pendingTasks.toString(),
-                                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-                                ),
-                                const Text('My Pending Tasks', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              children: [
-                                const Icon(Icons.warning_amber_rounded, size: 40, color: Colors.redAccent),
-                                const SizedBox(height: 16),
-                                Text(
-                                  urgentTasks.toString(),
-                                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-                                ),
-                                const Text('Urgent Repairs', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 48),
-                  Center(
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        context.go('/staff/assignments');
-                      },
-                      icon: const Icon(Icons.assignment),
-                      label: const Text('View My Assignments'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

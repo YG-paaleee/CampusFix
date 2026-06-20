@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../models/maintenance_report.dart';
-import '../../models/report_options.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/urgency_chip.dart';
 
 class StaffAssignedReportsScreen extends StatelessWidget {
   const StaffAssignedReportsScreen({super.key, required this.reports});
@@ -17,14 +19,23 @@ class StaffAssignedReportsScreen extends StatelessWidget {
         title: const Text('My Assignments'),
       ),
       body: reports.isEmpty
-          ? const Center(child: Text('You have no assigned reports.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: reports.length,
-              itemBuilder: (context, index) {
-                final report = reports[index];
-                return _StaffReportCard(report: report);
-              },
+          ? const EmptyState(
+              icon: Icons.assignment_turned_in_outlined,
+              title: 'You are all caught up',
+              message: 'No reports are assigned to you yet.',
+            )
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: reports.length,
+                  itemBuilder: (context, index) {
+                    final report = reports[index];
+                    return _StaffReportCard(report: report);
+                  },
+                ),
+              ),
             ),
     );
   }
@@ -52,58 +63,55 @@ class _StaffReportCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.brandSoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.build_rounded,
+                      color: AppColors.accent,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       report.title,
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  StatusChip(status: report.status),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Category: ${report.category.label} • Location: ${report.location}',
-                style: const TextStyle(color: Colors.black87),
-              ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Icon(
-                    Icons.warning_rounded,
-                    size: 16,
-                    color: _getUrgencyColor(report.urgency),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${report.urgency.label} Urgency',
-                    style: TextStyle(
-                      color: _getUrgencyColor(report.urgency),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Submitted: ${formatDate(report.submittedAt)}',
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
+                  StatusChip(status: report.status),
+                  UrgencyChip(urgency: report.urgency),
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(height: 1, color: Color(0xFFE2E7E1)),
-              const SizedBox(height: 12),
-              const Text(
-                'Description',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              _MetaRow(
+                icon: Icons.place_outlined,
+                text: report.location,
               ),
-              const SizedBox(height: 4),
-              Text(
-                report.description,
-                style: const TextStyle(color: Colors.black87),
+              const SizedBox(height: 6),
+              _MetaRow(
+                icon: Icons.category_outlined,
+                text: report.category.label,
+              ),
+              const SizedBox(height: 6),
+              _MetaRow(
+                icon: Icons.event_outlined,
+                text: 'Submitted ${formatDate(report.submittedAt)}',
               ),
             ],
           ),
@@ -111,15 +119,30 @@ class _StaffReportCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Color _getUrgencyColor(ReportUrgency urgency) {
-    switch (urgency) {
-      case ReportUrgency.high:
-        return Colors.redAccent;
-      case ReportUrgency.medium:
-        return Colors.orange;
-      case ReportUrgency.low:
-        return Colors.green;
-    }
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.inkSoft),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: AppColors.inkSoft,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -211,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Broken window'), findsOneWidget);
-    expect(find.textContaining('Classroom - Room 105'), findsOneWidget);
+    expect(find.textContaining('Classroom • Room 105'), findsOneWidget);
   });
 }
 

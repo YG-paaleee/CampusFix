@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'firebase_options.dart';
 import 'models/report_options.dart';
+import 'theme/app_theme.dart';
 import 'screens/admin/admin_all_reports_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/admin_login_screen.dart';
@@ -467,59 +468,7 @@ class _FirebaseServices {
   final String? authApiKey;
 }
 
-final _campusFixColorScheme =
-    ColorScheme.fromSeed(seedColor: const Color(0xFF114B3A)).copyWith(
-      primary: const Color(0xFF114B3A),
-      secondary: const Color(0xFF0D7C66),
-      surface: Colors.white,
-    );
-
-final _campusFixTheme = ThemeData(
-  colorScheme: _campusFixColorScheme,
-  scaffoldBackgroundColor: const Color(0xFFF5F7F4),
-  useMaterial3: true,
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.white,
-    foregroundColor: Color(0xFF17211C),
-    centerTitle: false,
-    elevation: 0,
-    surfaceTintColor: Colors.white,
-  ),
-  cardTheme: CardThemeData(
-    color: Colors.white,
-    elevation: 1,
-    margin: EdgeInsets.zero,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: const BorderSide(color: Color(0xFFE2E7E1)),
-    ),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: Color(0xFF114B3A), width: 2),
-    ),
-  ),
-  filledButtonTheme: FilledButtonThemeData(
-    style: FilledButton.styleFrom(
-      backgroundColor: const Color(0xFF114B3A),
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  ),
-  outlinedButtonTheme: OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      foregroundColor: const Color(0xFF114B3A),
-      side: const BorderSide(color: Color(0xFF9DB7AD)),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  ),
-);
+final _campusFixTheme = buildCampusFixTheme();
 
 class _ReportNotFoundScreen extends StatelessWidget {
   const _ReportNotFoundScreen();

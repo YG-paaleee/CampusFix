@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
+import '../../theme/app_colors.dart';
 
 typedef ReportCreatedHandler = Future<void> Function(MaintenanceReport report);
 typedef ReportIdGenerator = String Function();
@@ -86,27 +87,28 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
               children: [
                 Text(
                   'File a Maintenance Report',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF17211C),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Provide clear details so the report can be reviewed and assigned.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                const Text(
+                  'Provide clear details so the report can be reviewed and assigned quickly.',
+                  style: TextStyle(color: AppColors.inkSoft, fontSize: 15),
                 ),
                 const SizedBox(height: 24),
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
                         TextFormField(
                           controller: _titleController,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Issue title',
-                            border: OutlineInputBorder(),
+                            hintText: 'e.g. Broken projector in Room 301',
+                            prefixIcon: Icon(Icons.title_rounded),
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -120,7 +122,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           initialValue: _category,
                           decoration: const InputDecoration(
                             labelText: 'Category',
-                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.category_outlined),
                           ),
                           items: ReportCategory.values.map((category) {
                             return DropdownMenuItem(
@@ -140,9 +142,11 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _locationController,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Location or room',
-                            border: OutlineInputBorder(),
+                            hintText: 'e.g. Building A, Room 301',
+                            prefixIcon: Icon(Icons.place_outlined),
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -156,7 +160,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           initialValue: _urgency,
                           decoration: const InputDecoration(
                             labelText: 'Urgency',
-                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.flag_outlined),
                           ),
                           items: ReportUrgency.values.map((urgency) {
                             return DropdownMenuItem(
@@ -180,7 +184,9 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           maxLines: 6,
                           decoration: const InputDecoration(
                             labelText: 'Description',
-                            border: OutlineInputBorder(),
+                            hintText:
+                                'Describe the problem and anything staff should know.',
+                            alignLabelWithHint: true,
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -194,7 +200,7 @@ class _SubmitReportScreenState extends State<SubmitReportScreen> {
                           alignment: Alignment.centerRight,
                           child: FilledButton.icon(
                             onPressed: _submitReport,
-                            icon: const Icon(Icons.send),
+                            icon: const Icon(Icons.send_rounded),
                             label: const Text('Submit'),
                           ),
                         ),
