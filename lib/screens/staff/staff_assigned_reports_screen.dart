@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
@@ -89,8 +88,8 @@ class _StaffReportCard extends StatelessWidget {
       builder: (_) => _ResolveDialog(reportTitle: report.title),
     );
     if (result == null) return;
-    onResolve(report.reportId, note: result.note, imageBase64: result.imageBase64);
-    if (context.mounted) _snack(context, 'Repair marked as resolved with evidence.');
+    onResolve(report.reportId, note: result.note);
+    if (context.mounted) _snack(context, 'Repair marked as resolved.');
   }
 
   Future<void> _putOnHold(BuildContext context) async {
@@ -170,7 +169,10 @@ class _StaffReportCard extends StatelessWidget {
             const SizedBox(height: 12),
             _MetaRow(icon: Icons.place_outlined, text: report.location),
             const SizedBox(height: 6),
-            _MetaRow(icon: Icons.category_outlined, text: report.category.label),
+            _MetaRow(
+              icon: Icons.category_outlined,
+              text: report.category.label,
+            ),
             const SizedBox(height: 6),
             _MetaRow(
               icon: Icons.event_outlined,
@@ -385,9 +387,9 @@ class _StatusActions extends StatelessWidget {
 }
 
 class _ResolveResult {
-  const _ResolveResult({required this.note, this.imageBase64});
+  const _ResolveResult({required this.note});
+
   final String note;
-  final String? imageBase64;
 }
 
 class _ResolveDialog extends StatefulWidget {
@@ -401,8 +403,6 @@ class _ResolveDialog extends StatefulWidget {
 
 class _ResolveDialogState extends State<_ResolveDialog> {
   final _noteController = TextEditingController();
-  String? _imageBase64;
-  bool _picking = false;
   String? _error;
 
   @override
@@ -411,35 +411,13 @@ class _ResolveDialogState extends State<_ResolveDialog> {
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
-    setState(() => _picking = true);
-    try {
-      final picker = ImagePicker();
-      final file = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1280,
-        imageQuality: 70,
-      );
-      if (file != null) {
-        final bytes = await file.readAsBytes();
-        if (mounted) setState(() => _imageBase64 = base64Encode(bytes));
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Could not load that photo.');
-    } finally {
-      if (mounted) setState(() => _picking = false);
-    }
-  }
-
   void _submit() {
     final note = _noteController.text.trim();
     if (note.isEmpty) {
       setState(() => _error = 'Please describe how the issue was resolved.');
       return;
     }
-    Navigator.of(context).pop(
-      _ResolveResult(note: note, imageBase64: _imageBase64),
-    );
+    Navigator.of(context).pop(_ResolveResult(note: note));
   }
 
   @override
@@ -455,7 +433,7 @@ class _ResolveDialogState extends State<_ResolveDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Add proof of completion for "${widget.reportTitle}".',
+                'Add a completion note for "${widget.reportTitle}".',
                 style: const TextStyle(color: AppColors.inkSoft),
               ),
               const SizedBox(height: 16),
@@ -467,31 +445,6 @@ class _ResolveDialogState extends State<_ResolveDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Resolution note',
                   hintText: 'What was done to fix the issue?',
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_imageBase64 != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(
-                    base64Decode(_imageBase64!),
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _picking ? null : _pickPhoto,
-                icon: _picking
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_a_photo_outlined),
-                label: Text(
-                  _imageBase64 == null ? 'Attach photo (optional)' : 'Change photo',
                 ),
               ),
               if (_error != null) ...[
@@ -544,8 +497,11 @@ class _ResolutionEvidence extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.verified_rounded,
-                  size: 18, color: statusColor(ReportStatus.resolved)),
+              Icon(
+                Icons.verified_rounded,
+                size: 18,
+                color: statusColor(ReportStatus.resolved),
+              ),
               const SizedBox(width: 8),
               Text(
                 'Completion evidence',
@@ -595,12 +551,17 @@ class _NoteBubble extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.chat_bubble_outline_rounded,
-              size: 16, color: AppColors.accent),
+          const Icon(
+            Icons.chat_bubble_outline_rounded,
+            size: 16,
+            color: AppColors.accent,
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(color: AppColors.ink, height: 1.35)),
+            child: Text(
+              text,
+              style: const TextStyle(color: AppColors.ink, height: 1.35),
+            ),
           ),
         ],
       ),

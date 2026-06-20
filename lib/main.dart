@@ -70,10 +70,14 @@ class _CampusFixAppState extends State<CampusFixApp> {
     _reportService = ReportService(firestore: widget.firestore);
     _restoreStudentSession();
     _router = GoRouter(
-      refreshListenable: Listenable.merge([_authService, _adminAuthService, _staffAuthService]),
+      refreshListenable: Listenable.merge([
+        _authService,
+        _adminAuthService,
+        _staffAuthService,
+      ]),
       redirect: (context, state) {
         final path = state.uri.path;
-        
+
         // --- Student Routing Logic ---
         final isSignupRoute = path == '/student/signup';
         final isStudentRoute =
@@ -124,7 +128,8 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(path: '/student/signup', builder: _buildStudentSignup),
         GoRoute(
           path: '/admin-login',
-          builder: (context, state) => AdminLoginScreen(onAdminLogin: _loginAdmin),
+          builder: (context, state) =>
+              AdminLoginScreen(onAdminLogin: _loginAdmin),
         ),
         GoRoute(
           path: '/admin',
@@ -149,9 +154,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
           builder: (context, state) => AnimatedBuilder(
             animation: _reportService,
             builder: (context, _) {
-              return AdminAllReportsScreen(
-                reports: _reportService.reports,
-              );
+              return AdminAllReportsScreen(reports: _reportService.reports);
             },
           ),
         ),
@@ -208,7 +211,8 @@ class _CampusFixAppState extends State<CampusFixApp> {
         ),
         GoRoute(
           path: '/staff-login',
-          builder: (context, state) => StaffLoginScreen(onStaffLogin: _loginStaff),
+          builder: (context, state) =>
+              StaffLoginScreen(onStaffLogin: _loginStaff),
         ),
         GoRoute(
           path: '/staff',
@@ -222,16 +226,26 @@ class _CampusFixAppState extends State<CampusFixApp> {
                 final staffReports = _reportService.reports
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
-                
+
                 final pendingTasks = staffReports
-                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected)
+                    .where(
+                      (r) =>
+                          r.status != ReportStatus.resolved &&
+                          r.status != ReportStatus.rejected,
+                    )
                     .length;
                 final urgentTasks = staffReports
-                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected && r.urgency == ReportUrgency.high)
+                    .where(
+                      (r) =>
+                          r.status != ReportStatus.resolved &&
+                          r.status != ReportStatus.rejected &&
+                          r.urgency == ReportUrgency.high,
+                    )
                     .length;
 
                 return StaffDashboardScreen(
                   staffName: _staffAuthService.currentStaffName,
+                  assignedReports: staffReports,
                   pendingTasks: pendingTasks,
                   urgentTasks: urgentTasks,
                   onLogout: () {
@@ -255,14 +269,16 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
 
-                final staffName =
-                    _staffAuthService.currentStaffName ?? 'Staff';
+                final staffName = _staffAuthService.currentStaffName ?? 'Staff';
                 return StaffAssignedReportsScreen(
                   reports: staffReports,
                   onUpdateStatus: _reportService.updateReportStatus,
                   onResolve:
-                      (String reportId,
-                          {required String note, String? imageBase64}) {
+                      (
+                        String reportId, {
+                        required String note,
+                        String? imageBase64,
+                      }) {
                         _reportService.resolveWithEvidence(
                           reportId,
                           note: note,
