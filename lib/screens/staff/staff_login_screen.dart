@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class StaffLoginScreen extends StatefulWidget {
   const StaffLoginScreen({super.key, required this.onStaffLogin});
@@ -26,12 +27,17 @@ class _StaffLoginScreenState extends State<StaffLoginScreen> {
       password: _passwordController.text,
     );
 
-    if (mounted) {
+    if (!mounted) return;
+
+    if (error != null) {
       setState(() {
         _isLoading = false;
         _error = error;
       });
+      return;
     }
+
+    context.go('/staff');
   }
 
   @override
