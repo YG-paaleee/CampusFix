@@ -14,7 +14,7 @@ class StaffLoginScreen extends StatefulWidget {
 }
 
 class _StaffLoginScreenState extends State<StaffLoginScreen> {
-  final _emailController = TextEditingController(text: 'staff@campus.edu');
+  final _emailController = TextEditingController(text: 'john.doe@campus.edu');
   final _passwordController = TextEditingController(text: 'password');
   bool _isLoading = false;
   String? _error;

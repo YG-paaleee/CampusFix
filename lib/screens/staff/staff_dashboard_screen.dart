@@ -12,11 +12,13 @@ class StaffDashboardScreen extends StatelessWidget {
     required this.pendingTasks,
     required this.urgentTasks,
     required this.onLogout,
+    this.staffName,
   });
 
   final int pendingTasks;
   final int urgentTasks;
   final VoidCallback onLogout;
+  final String? staffName;
 
   @override
   Widget build(BuildContext context) {
@@ -47,10 +49,12 @@ class StaffDashboardScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(24.0),
               children: [
-                const HeaderBanner(
+                HeaderBanner(
                   eyebrow: 'Maintenance Staff',
                   title: 'Welcome, Maintenance Team',
-                  subtitle: 'Here is your current task summary.',
+                  subtitle: staffName == null
+                      ? 'Here is your current task summary.'
+                      : 'Signed in as $staffName • here is your current task summary.',
                   icon: Icons.handyman_outlined,
                 ),
                 const SizedBox(height: 24),

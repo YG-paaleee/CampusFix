@@ -196,6 +196,35 @@ class ReportService extends ChangeNotifier {
     );
   }
 
+  void unassignStaff(String reportId) {
+    final index = _reports.indexWhere((report) => report.reportId == reportId);
+    if (index == -1) {
+      return;
+    }
+
+    final current = _reports[index];
+    // copyWith can't clear a field back to null, so rebuild without the
+    // assignment.
+    final cleared = MaintenanceReport(
+      studentUid: current.studentUid,
+      studentId: current.studentId,
+      reportId: current.reportId,
+      submittedAt: current.submittedAt,
+      title: current.title,
+      location: current.location,
+      category: current.category,
+      urgency: current.urgency,
+      status: current.status,
+      description: current.description,
+      assignedStaffId: null,
+      assignedStaffName: null,
+      notes: current.notes,
+    );
+    _reports[index] = cleared;
+    notifyListeners();
+    _persistReport(cleared);
+  }
+
   void addReportNote(String reportId, String note) {
     final trimmed = note.trim();
     if (trimmed.isEmpty) {

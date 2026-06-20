@@ -64,9 +64,10 @@ class _CampusFixAppState extends State<CampusFixApp> {
       firestore: widget.firestore,
     );
     _adminAuthService = AdminAuthService();
-    _staffAuthService = StaffAuthService();
-    _reportService = ReportService(firestore: widget.firestore);
     _adminStaffService = AdminStaffService();
+    // Staff sign in against the accounts the admin manages.
+    _staffAuthService = StaffAuthService(_adminStaffService);
+    _reportService = ReportService(firestore: widget.firestore);
     _restoreStudentSession();
     _router = GoRouter(
       refreshListenable: Listenable.merge([_authService, _adminAuthService, _staffAuthService]),
@@ -160,7 +161,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
             if (reportId == null) return const SizedBox.shrink();
 
             return AnimatedBuilder(
-              animation: _reportService,
+              animation: Listenable.merge([_reportService, _adminStaffService]),
               builder: (context, _) {
                 final report = _reportService.getReportById(reportId);
                 if (report == null) {
@@ -172,11 +173,15 @@ class _CampusFixAppState extends State<CampusFixApp> {
 
                 return AdminReportManagementScreen(
                   report: report,
+                  staff: _adminStaffService.staffMembers,
                   onStatusChanged: (newStatus) {
                     _reportService.updateReportStatus(reportId, newStatus);
                   },
                   onStaffAssigned: (staffId, staffName) {
                     _reportService.assignStaff(reportId, staffId, staffName);
+                  },
+                  onUnassign: () {
+                    _reportService.unassignStaff(reportId);
                   },
                   onNoteAdded: (note) {
                     _reportService.addReportNote(reportId, note);
@@ -225,6 +230,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     .length;
 
                 return StaffDashboardScreen(
+                  staffName: _staffAuthService.currentStaffName,
                   pendingTasks: pendingTasks,
                   urgentTasks: urgentTasks,
                   onLogout: () {

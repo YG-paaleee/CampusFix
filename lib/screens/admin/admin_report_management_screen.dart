@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
+import '../../models/staff_account.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/status_styles.dart';
@@ -11,14 +12,18 @@ class AdminReportManagementScreen extends StatefulWidget {
   const AdminReportManagementScreen({
     super.key,
     required this.report,
+    required this.staff,
     required this.onStatusChanged,
     required this.onStaffAssigned,
+    required this.onUnassign,
     required this.onNoteAdded,
   });
 
   final MaintenanceReport report;
+  final List<StaffAccount> staff;
   final ValueChanged<ReportStatus> onStatusChanged;
   final void Function(String staffId, String staffName) onStaffAssigned;
+  final VoidCallback onUnassign;
   final ValueChanged<String> onNoteAdded;
 
   @override
@@ -27,12 +32,6 @@ class AdminReportManagementScreen extends StatefulWidget {
 
 class _AdminReportManagementScreenState extends State<AdminReportManagementScreen> {
   final _noteController = TextEditingController();
-
-  final _mockStaffList = const [
-    {'id': 's1', 'name': 'John Doe (Electrician)'},
-    {'id': 's2', 'name': 'Jane Smith (Plumber)'},
-    {'id': 's3', 'name': 'Mike Johnson (General)'},
-  ];
 
   @override
   void dispose() {
@@ -185,21 +184,36 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
               ),
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<String?>(
               value: widget.report.assignedStaffId,
               hint: const Text('Unassigned'),
               items: [
-                const DropdownMenuItem<String>(value: null, child: Text('Unassigned')),
-                ..._mockStaffList.map(
-                  (s) => DropdownMenuItem(value: s['id'], child: Text(s['name']!)),
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Unassigned'),
+                ),
+                ...widget.staff.map(
+                  (s) => DropdownMenuItem<String?>(
+                    value: s.staffId,
+                    enabled: s.isActive,
+                    child: Text(
+                      s.isActive
+                          ? '${s.fullName} — ${s.specialty}'
+                          : '${s.fullName} — ${s.specialty} (inactive)',
+                    ),
+                  ),
                 ),
               ],
               onChanged: (value) {
-                if (value != null) {
-                  final staff = _mockStaffList.firstWhere((s) => s['id'] == value);
-                  widget.onStaffAssigned(staff['id']!, staff['name']!);
-                  _showSnack('Assigned to ${staff['name']}.');
+                if (value == null) {
+                  widget.onUnassign();
+                  _showSnack('Report unassigned.');
+                  return;
                 }
+                final staff =
+                    widget.staff.firstWhere((s) => s.staffId == value);
+                widget.onStaffAssigned(staff.staffId, staff.fullName);
+                _showSnack('Assigned to ${staff.fullName}.');
               },
             ),
           ],
