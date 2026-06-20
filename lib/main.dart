@@ -408,6 +408,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
     );
 
     if (success) {
+      // Load all reports so the admin sees every student's data from
+      // Firestore, not just the in-memory seed list.
+      await _reportService.loadReports();
       return null;
     }
 
@@ -424,6 +427,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
     );
 
     if (success) {
+      // Load all reports so the staff member sees the ones assigned to them
+      // from Firestore, not just the in-memory seed list.
+      await _reportService.loadReports();
       return null;
     }
 
