@@ -237,6 +237,22 @@ class ReportService extends ChangeNotifier {
     );
   }
 
+  /// Staff completes a repair with a required note and an optional photo.
+  void resolveWithEvidence(
+    String reportId, {
+    required String note,
+    String? imageBase64,
+  }) {
+    _updateReport(
+      reportId,
+      (report) => report.copyWith(
+        status: ReportStatus.resolved,
+        resolutionNote: note,
+        resolutionImage: imageBase64,
+      ),
+    );
+  }
+
   void _updateReport(
     String reportId,
     MaintenanceReport Function(MaintenanceReport report) change,

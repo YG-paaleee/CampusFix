@@ -15,6 +15,8 @@ class MaintenanceReport {
     this.assignedStaffId,
     this.assignedStaffName,
     this.notes = const [],
+    this.resolutionNote,
+    this.resolutionImage,
   });
 
   final String studentUid;
@@ -31,6 +33,10 @@ class MaintenanceReport {
   final String? assignedStaffName;
   final List<String> notes;
 
+  /// Staff's completion note and an optional base64-encoded evidence photo.
+  final String? resolutionNote;
+  final String? resolutionImage;
+
   MaintenanceReport copyWith({
     String? studentUid,
     String? studentId,
@@ -45,6 +51,8 @@ class MaintenanceReport {
     String? assignedStaffId,
     String? assignedStaffName,
     List<String>? notes,
+    String? resolutionNote,
+    String? resolutionImage,
   }) {
     return MaintenanceReport(
       studentUid: studentUid ?? this.studentUid,
@@ -60,6 +68,8 @@ class MaintenanceReport {
       assignedStaffId: assignedStaffId ?? this.assignedStaffId,
       assignedStaffName: assignedStaffName ?? this.assignedStaffName,
       notes: notes ?? this.notes,
+      resolutionNote: resolutionNote ?? this.resolutionNote,
+      resolutionImage: resolutionImage ?? this.resolutionImage,
     );
   }
 
@@ -90,6 +100,8 @@ class MaintenanceReport {
       assignedStaffId: json['assignedStaffId']?.toString(),
       assignedStaffName: json['assignedStaffName']?.toString(),
       notes: (json['notes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      resolutionNote: json['resolutionNote']?.toString(),
+      resolutionImage: json['resolutionImage']?.toString(),
     );
   }
 
@@ -108,6 +120,8 @@ class MaintenanceReport {
       if (assignedStaffId != null) 'assignedStaffId': assignedStaffId,
       if (assignedStaffName != null) 'assignedStaffName': assignedStaffName,
       'notes': notes,
+      if (resolutionNote != null) 'resolutionNote': resolutionNote,
+      if (resolutionImage != null) 'resolutionImage': resolutionImage,
     };
   }
 }

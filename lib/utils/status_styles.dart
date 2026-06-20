@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 Color statusColor(ReportStatus status) => switch (status) {
   ReportStatus.submitted => AppColors.statusSubmitted,
   ReportStatus.inProgress => AppColors.statusInProgress,
+  ReportStatus.onHold => AppColors.statusOnHold,
   ReportStatus.resolved => AppColors.statusResolved,
   ReportStatus.rejected => AppColors.statusRejected,
 };
@@ -16,6 +17,7 @@ Color statusColor(ReportStatus status) => switch (status) {
 Color statusBackground(ReportStatus status) => switch (status) {
   ReportStatus.submitted => AppColors.statusSubmittedBg,
   ReportStatus.inProgress => AppColors.statusInProgressBg,
+  ReportStatus.onHold => AppColors.statusOnHoldBg,
   ReportStatus.resolved => AppColors.statusResolvedBg,
   ReportStatus.rejected => AppColors.statusRejectedBg,
 };
@@ -23,6 +25,7 @@ Color statusBackground(ReportStatus status) => switch (status) {
 IconData statusIcon(ReportStatus status) => switch (status) {
   ReportStatus.submitted => Icons.fiber_new_rounded,
   ReportStatus.inProgress => Icons.autorenew_rounded,
+  ReportStatus.onHold => Icons.pause_circle_filled_rounded,
   ReportStatus.resolved => Icons.check_circle_rounded,
   ReportStatus.rejected => Icons.cancel_rounded,
 };

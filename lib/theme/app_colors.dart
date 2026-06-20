@@ -29,6 +29,8 @@ class AppColors {
   static const Color statusResolvedBg = Color(0xFFE7F2E7);
   static const Color statusRejected = Color(0xFFC62828);
   static const Color statusRejectedBg = Color(0xFFFBE7E7);
+  static const Color statusOnHold = Color(0xFF5E548E);
+  static const Color statusOnHoldBg = Color(0xFFECEAF6);
 
   // --- Urgency colours ---
   static const Color urgencyHigh = Color(0xFFC62828);

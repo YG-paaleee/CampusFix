@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
@@ -11,16 +14,23 @@ import '../../widgets/urgency_chip.dart';
 
 typedef ReportStatusUpdater =
     void Function(String reportId, ReportStatus newStatus);
+typedef ReportResolver =
+    void Function(String reportId, {required String note, String? imageBase64});
+typedef ReportNoteAdder = void Function(String reportId, String note);
 
 class StaffAssignedReportsScreen extends StatelessWidget {
   const StaffAssignedReportsScreen({
     super.key,
     required this.reports,
     required this.onUpdateStatus,
+    required this.onResolve,
+    required this.onAddNote,
   });
 
   final List<MaintenanceReport> reports;
   final ReportStatusUpdater onUpdateStatus;
+  final ReportResolver onResolve;
+  final ReportNoteAdder onAddNote;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +53,8 @@ class StaffAssignedReportsScreen extends StatelessWidget {
                     return _StaffReportCard(
                       report: report,
                       onUpdateStatus: onUpdateStatus,
+                      onResolve: onResolve,
+                      onAddNote: onAddNote,
                     );
                   },
                 ),
@@ -53,24 +65,63 @@ class StaffAssignedReportsScreen extends StatelessWidget {
 }
 
 class _StaffReportCard extends StatelessWidget {
-  const _StaffReportCard({required this.report, required this.onUpdateStatus});
+  const _StaffReportCard({
+    required this.report,
+    required this.onUpdateStatus,
+    required this.onResolve,
+    required this.onAddNote,
+  });
 
   final MaintenanceReport report;
   final ReportStatusUpdater onUpdateStatus;
+  final ReportResolver onResolve;
+  final ReportNoteAdder onAddNote;
 
-  void _update(BuildContext context, ReportStatus newStatus) {
-    onUpdateStatus(report.reportId, newStatus);
+  void _snack(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('"${report.title}" marked as ${newStatus.label}.'),
-        ),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _resolve(BuildContext context) async {
+    final result = await showDialog<_ResolveResult>(
+      context: context,
+      builder: (_) => _ResolveDialog(reportTitle: report.title),
+    );
+    if (result == null) return;
+    onResolve(report.reportId, note: result.note, imageBase64: result.imageBase64);
+    if (context.mounted) _snack(context, 'Repair marked as resolved with evidence.');
+  }
+
+  Future<void> _putOnHold(BuildContext context) async {
+    final reason = await _promptText(
+      context,
+      title: 'Put on hold',
+      hint: 'Reason (e.g. waiting for parts)',
+      confirmLabel: 'Put on hold',
+    );
+    if (reason == null || reason.isEmpty) return;
+    onAddNote(report.reportId, 'Put on hold — $reason');
+    onUpdateStatus(report.reportId, ReportStatus.onHold);
+    if (context.mounted) _snack(context, 'Repair put on hold.');
+  }
+
+  Future<void> _addUpdate(BuildContext context) async {
+    final text = await _promptText(
+      context,
+      title: 'Add a progress update',
+      hint: 'What did you do?',
+      confirmLabel: 'Post update',
+    );
+    if (text == null || text.isEmpty) return;
+    onAddNote(report.reportId, text);
+    if (context.mounted) _snack(context, 'Update posted.');
   }
 
   @override
   Widget build(BuildContext context) {
+    final isResolved = report.status == ReportStatus.resolved;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -119,10 +170,7 @@ class _StaffReportCard extends StatelessWidget {
             const SizedBox(height: 12),
             _MetaRow(icon: Icons.place_outlined, text: report.location),
             const SizedBox(height: 6),
-            _MetaRow(
-              icon: Icons.category_outlined,
-              text: report.category.label,
-            ),
+            _MetaRow(icon: Icons.category_outlined, text: report.category.label),
             const SizedBox(height: 6),
             _MetaRow(
               icon: Icons.event_outlined,
@@ -139,17 +187,37 @@ class _StaffReportCard extends StatelessWidget {
                 ),
                 child: Text(
                   report.description,
-                  style: const TextStyle(
-                    color: AppColors.ink,
-                    height: 1.4,
-                  ),
+                  style: const TextStyle(color: AppColors.ink, height: 1.4),
                 ),
+              ),
+            ],
+            if (report.notes.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const _MiniLabel('Updates'),
+              const SizedBox(height: 8),
+              ...report.notes.map((note) => _NoteBubble(text: note)),
+            ],
+            if (isResolved && report.resolutionNote != null) ...[
+              const SizedBox(height: 16),
+              _ResolutionEvidence(
+                note: report.resolutionNote!,
+                imageBase64: report.resolutionImage,
               ),
             ],
             const Divider(height: 28),
             _StatusActions(
               status: report.status,
-              onUpdate: (newStatus) => _update(context, newStatus),
+              onStart: () {
+                onUpdateStatus(report.reportId, ReportStatus.inProgress);
+                _snack(context, 'Repair started.');
+              },
+              onResolve: () => _resolve(context),
+              onHold: () => _putOnHold(context),
+              onResume: () {
+                onUpdateStatus(report.reportId, ReportStatus.inProgress);
+                _snack(context, 'Repair resumed.');
+              },
+              onAddUpdate: () => _addUpdate(context),
             ),
           ],
         ),
@@ -158,38 +226,118 @@ class _StaffReportCard extends StatelessWidget {
   }
 }
 
-/// Friendly, contextual buttons that let staff move a repair forward.
+Future<String?> _promptText(
+  BuildContext context, {
+  required String title,
+  required String hint,
+  required String confirmLabel,
+}) {
+  final controller = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        minLines: 1,
+        maxLines: 4,
+        decoration: InputDecoration(hintText: hint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(dialogContext).pop(controller.text.trim()),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Status-dependent action buttons for a staff member working a repair.
 class _StatusActions extends StatelessWidget {
-  const _StatusActions({required this.status, required this.onUpdate});
+  const _StatusActions({
+    required this.status,
+    required this.onStart,
+    required this.onResolve,
+    required this.onHold,
+    required this.onResume,
+    required this.onAddUpdate,
+  });
 
   final ReportStatus status;
-  final ValueChanged<ReportStatus> onUpdate;
+  final VoidCallback onStart;
+  final VoidCallback onResolve;
+  final VoidCallback onHold;
+  final VoidCallback onResume;
+  final VoidCallback onAddUpdate;
 
   @override
   Widget build(BuildContext context) {
+    final updateButton = TextButton.icon(
+      onPressed: onAddUpdate,
+      icon: const Icon(Icons.add_comment_outlined, size: 18),
+      label: const Text('Add update'),
+    );
+
     switch (status) {
       case ReportStatus.submitted:
         return Row(
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed: () => onUpdate(ReportStatus.inProgress),
+                onPressed: onStart,
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('Start repair'),
               ),
             ),
+            const SizedBox(width: 8),
+            updateButton,
           ],
         );
       case ReportStatus.inProgress:
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onResolve,
+                    icon: const Icon(Icons.check_circle_rounded),
+                    label: const Text('Mark resolved'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onHold,
+                    icon: const Icon(Icons.pause_rounded),
+                    label: const Text('On hold'),
+                  ),
+                ),
+              ],
+            ),
+            Align(alignment: Alignment.centerLeft, child: updateButton),
+          ],
+        );
+      case ReportStatus.onHold:
         return Row(
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed: () => onUpdate(ReportStatus.resolved),
-                icon: const Icon(Icons.check_circle_rounded),
-                label: const Text('Mark as resolved'),
+                onPressed: onResume,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Resume repair'),
               ),
             ),
+            const SizedBox(width: 8),
+            updateButton,
           ],
         );
       case ReportStatus.resolved:
@@ -209,10 +357,7 @@ class _StatusActions extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: () => onUpdate(ReportStatus.inProgress),
-              child: const Text('Reopen'),
-            ),
+            TextButton(onPressed: onResume, child: const Text('Reopen')),
           ],
         );
       case ReportStatus.rejected:
@@ -224,16 +369,260 @@ class _StatusActions extends StatelessWidget {
               color: statusColor(ReportStatus.rejected),
             ),
             const SizedBox(width: 8),
-            Text(
-              'This report was rejected by an admin.',
-              style: TextStyle(
-                color: statusColor(ReportStatus.rejected),
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                'This report was rejected by an admin.',
+                style: TextStyle(
+                  color: statusColor(ReportStatus.rejected),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
         );
     }
+  }
+}
+
+class _ResolveResult {
+  const _ResolveResult({required this.note, this.imageBase64});
+  final String note;
+  final String? imageBase64;
+}
+
+class _ResolveDialog extends StatefulWidget {
+  const _ResolveDialog({required this.reportTitle});
+
+  final String reportTitle;
+
+  @override
+  State<_ResolveDialog> createState() => _ResolveDialogState();
+}
+
+class _ResolveDialogState extends State<_ResolveDialog> {
+  final _noteController = TextEditingController();
+  String? _imageBase64;
+  bool _picking = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    setState(() => _picking = true);
+    try {
+      final picker = ImagePicker();
+      final file = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        imageQuality: 70,
+      );
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        if (mounted) setState(() => _imageBase64 = base64Encode(bytes));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not load that photo.');
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  void _submit() {
+    final note = _noteController.text.trim();
+    if (note.isEmpty) {
+      setState(() => _error = 'Please describe how the issue was resolved.');
+      return;
+    }
+    Navigator.of(context).pop(
+      _ResolveResult(note: note, imageBase64: _imageBase64),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text('Complete repair'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Add proof of completion for "${widget.reportTitle}".',
+                style: const TextStyle(color: AppColors.inkSoft),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _noteController,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Resolution note',
+                  hintText: 'What was done to fix the issue?',
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_imageBase64 != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    base64Decode(_imageBase64!),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _picking ? null : _pickPhoto,
+                icon: _picking
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_a_photo_outlined),
+                label: Text(
+                  _imageBase64 == null ? 'Attach photo (optional)' : 'Change photo',
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: const TextStyle(
+                    color: AppColors.statusRejected,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _submit,
+          icon: const Icon(Icons.check_rounded),
+          label: const Text('Mark resolved'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResolutionEvidence extends StatelessWidget {
+  const _ResolutionEvidence({required this.note, this.imageBase64});
+
+  final String note;
+  final String? imageBase64;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.statusResolvedBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.verified_rounded,
+                  size: 18, color: statusColor(ReportStatus.resolved)),
+              const SizedBox(width: 8),
+              Text(
+                'Completion evidence',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: statusColor(ReportStatus.resolved),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(note, style: const TextStyle(color: AppColors.ink, height: 1.4)),
+          if (imageBase64 != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.memory(
+                base64Decode(imageBase64!),
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NoteBubble extends StatelessWidget {
+  const _NoteBubble({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.brandSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.chat_bubble_outline_rounded,
+              size: 16, color: AppColors.accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(color: AppColors.ink, height: 1.35)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniLabel extends StatelessWidget {
+  const _MiniLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: AppColors.inkSoft,
+      ),
+    );
   }
 }
 

@@ -132,6 +132,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
             animation: _reportService,
             builder: (context, _) {
               return AdminDashboardScreen(
+                reports: _reportService.reports,
                 totalReports: _reportService.totalReports,
                 pendingReports: _reportService.pendingReports,
                 resolvedReports: _reportService.resolvedReports,
@@ -184,7 +185,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     _reportService.unassignStaff(reportId);
                   },
                   onNoteAdded: (note) {
-                    _reportService.addReportNote(reportId, note);
+                    _reportService.addReportNote(reportId, 'Admin: $note');
                   },
                 );
               },
@@ -254,9 +255,23 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
 
+                final staffName =
+                    _staffAuthService.currentStaffName ?? 'Staff';
                 return StaffAssignedReportsScreen(
                   reports: staffReports,
                   onUpdateStatus: _reportService.updateReportStatus,
+                  onResolve:
+                      (String reportId,
+                          {required String note, String? imageBase64}) {
+                        _reportService.resolveWithEvidence(
+                          reportId,
+                          note: note,
+                          imageBase64: imageBase64,
+                        );
+                      },
+                  onAddNote: (reportId, note) {
+                    _reportService.addReportNote(reportId, '$staffName: $note');
+                  },
                 );
               },
             );

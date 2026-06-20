@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
@@ -45,6 +47,42 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _rejectReport() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Reject report'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: 1,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Reason for rejection (shown to the student)',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Reject report'),
+          ),
+        ],
+      ),
+    );
+
+    if (reason == null || reason.isEmpty) return;
+    widget.onNoteAdded('Report rejected — $reason');
+    widget.onStatusChanged(ReportStatus.rejected);
+    _showSnack('Report rejected.');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +100,10 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 _buildHeaderCard(),
                 const SizedBox(height: 20),
                 _buildDetailsCard(),
+                if (widget.report.resolutionNote != null) ...[
+                  const SizedBox(height: 20),
+                  _buildResolutionCard(),
+                ],
                 const SizedBox(height: 20),
                 _buildManagementSection(),
                 const SizedBox(height: 20),
@@ -216,6 +258,62 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 _showSnack('Assigned to ${staff.fullName}.');
               },
             ),
+            if (widget.report.status != ReportStatus.rejected) ...[
+              const Divider(height: 32),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _rejectReport,
+                  icon: const Icon(Icons.block_rounded),
+                  label: const Text('Reject report'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.statusRejected,
+                    side: const BorderSide(color: AppColors.statusRejected),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResolutionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.verified_rounded,
+                    color: statusColor(ReportStatus.resolved)),
+                const SizedBox(width: 10),
+                const _SectionTitle('Completion Evidence'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.report.resolutionNote ?? '',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.ink,
+                height: 1.5,
+              ),
+            ),
+            if (widget.report.resolutionImage != null) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.memory(
+                  base64Decode(widget.report.resolutionImage!),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
           ],
         ),
       ),
