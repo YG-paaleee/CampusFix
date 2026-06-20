@@ -72,17 +72,19 @@ ThemeData buildCampusFixTheme() {
         backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        iconColor: Colors.white,
+        // Soft, friendly pill-shaped buttons for the primary actions.
+        shape: const StadiumBorder(),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.brand,
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-        side: const BorderSide(color: Color(0xFF9DB7AD)),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        side: const BorderSide(color: Color(0xFF9DB7AD), width: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+        shape: const StadiumBorder(),
       ),
     ),
     textButtonTheme: TextButtonThemeData(

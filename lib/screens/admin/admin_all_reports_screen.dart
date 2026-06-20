@@ -184,7 +184,7 @@ class _ReportCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          context.go('/admin/reports/${report.reportId}');
+          context.push('/admin/reports/${report.reportId}');
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),

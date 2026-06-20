@@ -40,6 +40,12 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
     super.dispose();
   }
 
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,6 +171,7 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
               onChanged: (value) {
                 if (value != null) {
                   widget.onStatusChanged(value);
+                  _showSnack('Status updated to ${value.label}.');
                 }
               },
             ),
@@ -191,6 +198,7 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 if (value != null) {
                   final staff = _mockStaffList.firstWhere((s) => s['id'] == value);
                   widget.onStaffAssigned(staff['id']!, staff['name']!);
+                  _showSnack('Assigned to ${staff['name']}.');
                 }
               },
             ),
@@ -268,10 +276,11 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 const SizedBox(width: 16),
                 FilledButton(
                   onPressed: () {
-                    final text = _noteController.text;
+                    final text = _noteController.text.trim();
                     if (text.isNotEmpty) {
                       widget.onNoteAdded(text);
                       _noteController.clear();
+                      _showSnack('Note added.');
                     }
                   },
                   child: const Text('Add Note'),

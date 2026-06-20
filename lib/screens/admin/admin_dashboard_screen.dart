@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../theme/app_colors.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/header_banner.dart';
 import '../../widgets/stat_card.dart';
 
@@ -28,7 +29,15 @@ class AdminDashboardScreen extends StatelessWidget {
         title: const Text('Admin Dashboard'),
         actions: [
           TextButton.icon(
-            onPressed: onLogout,
+            onPressed: () async {
+              final ok = await confirmAction(
+                context,
+                title: 'Log out?',
+                message: 'You will be returned to the login screen.',
+                confirmLabel: 'Log out',
+              );
+              if (ok) onLogout();
+            },
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
@@ -119,7 +128,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   children: [
                     FilledButton.icon(
                       onPressed: () {
-                        context.go('/admin/reports');
+                        context.push('/admin/reports');
                       },
                       icon: const Icon(Icons.list_alt),
                       label: const Text('View All Reports'),
@@ -136,7 +145,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     ),
                     OutlinedButton.icon(
                       onPressed: () {
-                        context.go('/admin/staff');
+                        context.push('/admin/staff');
                       },
                       icon: const Icon(Icons.people_alt),
                       label: const Text('Manage Staff'),

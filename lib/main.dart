@@ -248,7 +248,10 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
 
-                return StaffAssignedReportsScreen(reports: staffReports);
+                return StaffAssignedReportsScreen(
+                  reports: staffReports,
+                  onUpdateStatus: _reportService.updateReportStatus,
+                );
               },
             );
           },

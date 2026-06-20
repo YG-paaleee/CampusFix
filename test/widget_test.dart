@@ -77,6 +77,10 @@ void main() {
     await tester.tap(find.text('Logout'));
     await tester.pumpAndSettle();
 
+    // Confirm the logout in the confirmation dialog.
+    await tester.tap(find.text('Log out'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Student Login'), findsOneWidget);
     expect(find.text('Login as Student'), findsOneWidget);
   });

@@ -5,6 +5,7 @@ import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/header_banner.dart';
 import '../../widgets/stat_card.dart';
@@ -47,7 +48,15 @@ class StudentDashboardScreen extends StatelessWidget {
         ),
         actions: [
           TextButton.icon(
-            onPressed: onLogout,
+            onPressed: () async {
+              final ok = await confirmAction(
+                context,
+                title: 'Log out?',
+                message: 'You will be returned to the login screen.',
+                confirmLabel: 'Log out',
+              );
+              if (ok) onLogout();
+            },
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
