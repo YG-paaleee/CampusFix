@@ -1,7 +1,8 @@
 enum ReportStatus {
   submitted('Submitted'),
   inProgress('In Progress'),
-  resolved('Resolved');
+  resolved('Resolved'),
+  rejected('Rejected');
 
   const ReportStatus(this.label);
 

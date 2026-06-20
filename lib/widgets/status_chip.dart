@@ -11,6 +11,7 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = switch (status) {
       ReportStatus.resolved => const Color(0xFF2F7D32),
+      ReportStatus.rejected => Colors.redAccent,
       ReportStatus.inProgress => Theme.of(context).colorScheme.secondary,
       ReportStatus.submitted => Theme.of(context).colorScheme.primary,
     };

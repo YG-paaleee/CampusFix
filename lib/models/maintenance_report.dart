@@ -12,6 +12,9 @@ class MaintenanceReport {
     required this.urgency,
     required this.status,
     required this.description,
+    this.assignedStaffId,
+    this.assignedStaffName,
+    this.notes = const [],
   });
 
   final String studentUid;
@@ -24,6 +27,41 @@ class MaintenanceReport {
   final ReportUrgency urgency;
   final ReportStatus status;
   final String description;
+  final String? assignedStaffId;
+  final String? assignedStaffName;
+  final List<String> notes;
+
+  MaintenanceReport copyWith({
+    String? studentUid,
+    String? studentId,
+    String? reportId,
+    DateTime? submittedAt,
+    String? title,
+    String? location,
+    ReportCategory? category,
+    ReportUrgency? urgency,
+    ReportStatus? status,
+    String? description,
+    String? assignedStaffId,
+    String? assignedStaffName,
+    List<String>? notes,
+  }) {
+    return MaintenanceReport(
+      studentUid: studentUid ?? this.studentUid,
+      studentId: studentId ?? this.studentId,
+      reportId: reportId ?? this.reportId,
+      submittedAt: submittedAt ?? this.submittedAt,
+      title: title ?? this.title,
+      location: location ?? this.location,
+      category: category ?? this.category,
+      urgency: urgency ?? this.urgency,
+      status: status ?? this.status,
+      description: description ?? this.description,
+      assignedStaffId: assignedStaffId ?? this.assignedStaffId,
+      assignedStaffName: assignedStaffName ?? this.assignedStaffName,
+      notes: notes ?? this.notes,
+    );
+  }
 
   factory MaintenanceReport.fromJson(Map<String, dynamic> json) {
     return MaintenanceReport(
@@ -49,6 +87,9 @@ class MaintenanceReport {
         ReportStatus.submitted,
       ),
       description: json['description']?.toString() ?? '',
+      assignedStaffId: json['assignedStaffId']?.toString(),
+      assignedStaffName: json['assignedStaffName']?.toString(),
+      notes: (json['notes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
@@ -64,6 +105,9 @@ class MaintenanceReport {
       'urgency': urgency.name,
       'status': status.name,
       'description': description,
+      if (assignedStaffId != null) 'assignedStaffId': assignedStaffId,
+      if (assignedStaffName != null) 'assignedStaffName': assignedStaffName,
+      'notes': notes,
     };
   }
 }
