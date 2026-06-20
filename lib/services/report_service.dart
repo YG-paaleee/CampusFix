@@ -158,6 +158,90 @@ class ReportService extends ChangeNotifier {
     return 'CF-$timestamp-${_localIdSequence.toString().padLeft(3, '0')}';
   }
 
+  // --- Admin and staff views over the same shared report list ---
+
+  List<MaintenanceReport> get reports => List.unmodifiable(_reports);
+
+  int get totalReports => _reports.length;
+  int get pendingReports =>
+      _reports.where((r) => r.status == ReportStatus.submitted).length;
+  int get inProgressReports =>
+      _reports.where((r) => r.status == ReportStatus.inProgress).length;
+  int get resolvedReports =>
+      _reports.where((r) => r.status == ReportStatus.resolved).length;
+  int get urgentReports =>
+      _reports.where((r) => r.urgency == ReportUrgency.high).length;
+
+  MaintenanceReport? getReportById(String reportId) {
+    for (final report in _reports) {
+      if (report.reportId == reportId) {
+        return report;
+      }
+    }
+
+    return null;
+  }
+
+  void updateReportStatus(String reportId, ReportStatus newStatus) {
+    _updateReport(reportId, (report) => report.copyWith(status: newStatus));
+  }
+
+  void assignStaff(String reportId, String staffId, String staffName) {
+    _updateReport(
+      reportId,
+      (report) => report.copyWith(
+        assignedStaffId: staffId,
+        assignedStaffName: staffName,
+      ),
+    );
+  }
+
+  void addReportNote(String reportId, String note) {
+    final trimmed = note.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+
+    _updateReport(
+      reportId,
+      (report) => report.copyWith(notes: [...report.notes, trimmed]),
+    );
+  }
+
+  void _updateReport(
+    String reportId,
+    MaintenanceReport Function(MaintenanceReport report) change,
+  ) {
+    final index = _reports.indexWhere((report) => report.reportId == reportId);
+    if (index == -1) {
+      return;
+    }
+
+    final updated = change(_reports[index]);
+    _reports[index] = updated;
+    notifyListeners();
+    _persistReport(updated);
+  }
+
+  Future<void> _persistReport(MaintenanceReport report) async {
+    final firestore = _firestore;
+
+    if (firestore == null) {
+      return;
+    }
+
+    try {
+      await firestore
+          .collection('reports')
+          .doc(_documentIdForReport(report))
+          .set(report.toJson());
+      _errorMessage = null;
+    } catch (error) {
+      _errorMessage = 'Could not update this report in Firebase.';
+      notifyListeners();
+    }
+  }
+
   bool _belongsToStudent(MaintenanceReport report, StudentUser student) {
     return report.studentUid == student.uid ||
         (report.studentUid.isEmpty && report.studentId == student.studentId);

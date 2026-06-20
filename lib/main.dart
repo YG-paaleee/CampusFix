@@ -20,7 +20,6 @@ import 'screens/student/student_dashboard_screen.dart';
 import 'screens/student/student_signup_screen.dart';
 import 'screens/student/submit_report_screen.dart';
 import 'services/admin_auth_service.dart';
-import 'services/admin_report_service.dart';
 import 'services/admin_staff_service.dart';
 import 'services/report_service.dart';
 import 'services/staff_auth_service.dart';
@@ -53,7 +52,6 @@ class _CampusFixAppState extends State<CampusFixApp> {
   late final AdminAuthService _adminAuthService;
   late final StaffAuthService _staffAuthService;
   late final ReportService _reportService;
-  late final AdminReportService _adminReportService;
   late final AdminStaffService _adminStaffService;
   late final GoRouter _router;
 
@@ -67,7 +65,6 @@ class _CampusFixAppState extends State<CampusFixApp> {
     _adminAuthService = AdminAuthService();
     _staffAuthService = StaffAuthService();
     _reportService = ReportService(firestore: widget.firestore);
-    _adminReportService = AdminReportService();
     _adminStaffService = AdminStaffService();
     _restoreStudentSession();
     _router = GoRouter(
@@ -130,13 +127,13 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(
           path: '/admin',
           builder: (context, state) => AnimatedBuilder(
-            animation: _adminReportService,
+            animation: _reportService,
             builder: (context, _) {
               return AdminDashboardScreen(
-                totalReports: _adminReportService.totalReports,
-                pendingReports: _adminReportService.pendingReports,
-                resolvedReports: _adminReportService.resolvedReports,
-                urgentReports: _adminReportService.urgentReports,
+                totalReports: _reportService.totalReports,
+                pendingReports: _reportService.pendingReports,
+                resolvedReports: _reportService.resolvedReports,
+                urgentReports: _reportService.urgentReports,
                 onLogout: () {
                   _adminAuthService.logout();
                 },
@@ -147,10 +144,10 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(
           path: '/admin/reports',
           builder: (context, state) => AnimatedBuilder(
-            animation: _adminReportService,
+            animation: _reportService,
             builder: (context, _) {
               return AdminAllReportsScreen(
-                reports: _adminReportService.reports,
+                reports: _reportService.reports,
               );
             },
           ),
@@ -162,9 +159,9 @@ class _CampusFixAppState extends State<CampusFixApp> {
             if (reportId == null) return const SizedBox.shrink();
 
             return AnimatedBuilder(
-              animation: _adminReportService,
+              animation: _reportService,
               builder: (context, _) {
-                final report = _adminReportService.getReportById(reportId);
+                final report = _reportService.getReportById(reportId);
                 if (report == null) {
                   return Scaffold(
                     appBar: AppBar(title: const Text('Not Found')),
@@ -175,13 +172,13 @@ class _CampusFixAppState extends State<CampusFixApp> {
                 return AdminReportManagementScreen(
                   report: report,
                   onStatusChanged: (newStatus) {
-                    _adminReportService.updateReportStatus(reportId, newStatus);
+                    _reportService.updateReportStatus(reportId, newStatus);
                   },
                   onStaffAssigned: (staffId, staffName) {
-                    _adminReportService.assignStaff(reportId, staffId, staffName);
+                    _reportService.assignStaff(reportId, staffId, staffName);
                   },
                   onNoteAdded: (note) {
-                    _adminReportService.addReportNote(reportId, note);
+                    _reportService.addReportNote(reportId, note);
                   },
                 );
               },
@@ -210,12 +207,12 @@ class _CampusFixAppState extends State<CampusFixApp> {
           path: '/staff',
           builder: (context, state) {
             return AnimatedBuilder(
-              animation: _adminReportService,
+              animation: _reportService,
               builder: (context, _) {
                 final staffId = _staffAuthService.currentStaffId;
                 if (staffId == null) return const SizedBox.shrink();
 
-                final staffReports = _adminReportService.reports
+                final staffReports = _reportService.reports
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
                 
@@ -241,12 +238,12 @@ class _CampusFixAppState extends State<CampusFixApp> {
           path: '/staff/assignments',
           builder: (context, state) {
             return AnimatedBuilder(
-              animation: _adminReportService,
+              animation: _reportService,
               builder: (context, _) {
                 final staffId = _staffAuthService.currentStaffId;
                 if (staffId == null) return const SizedBox.shrink();
 
-                final staffReports = _adminReportService.reports
+                final staffReports = _reportService.reports
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
 
@@ -440,7 +437,6 @@ class _CampusFixAppState extends State<CampusFixApp> {
     _adminAuthService.dispose();
     _staffAuthService.dispose();
     _reportService.dispose();
-    _adminReportService.dispose();
     _adminStaffService.dispose();
     super.dispose();
   }
