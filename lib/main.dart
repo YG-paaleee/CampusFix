@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'firebase_options.dart';
 import 'models/report_options.dart';
+import 'theme/app_theme.dart';
 import 'screens/admin/admin_all_reports_screen.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/admin_login_screen.dart';
@@ -63,15 +64,20 @@ class _CampusFixAppState extends State<CampusFixApp> {
       firestore: widget.firestore,
     );
     _adminAuthService = AdminAuthService();
-    _staffAuthService = StaffAuthService();
-    _reportService = ReportService(firestore: widget.firestore);
     _adminStaffService = AdminStaffService();
+    // Staff sign in against the accounts the admin manages.
+    _staffAuthService = StaffAuthService(_adminStaffService);
+    _reportService = ReportService(firestore: widget.firestore);
     _restoreStudentSession();
     _router = GoRouter(
-      refreshListenable: Listenable.merge([_authService, _adminAuthService, _staffAuthService]),
+      refreshListenable: Listenable.merge([
+        _authService,
+        _adminAuthService,
+        _staffAuthService,
+      ]),
       redirect: (context, state) {
         final path = state.uri.path;
-        
+
         // --- Student Routing Logic ---
         final isSignupRoute = path == '/student/signup';
         final isStudentRoute =
@@ -122,7 +128,8 @@ class _CampusFixAppState extends State<CampusFixApp> {
         GoRoute(path: '/student/signup', builder: _buildStudentSignup),
         GoRoute(
           path: '/admin-login',
-          builder: (context, state) => AdminLoginScreen(onAdminLogin: _loginAdmin),
+          builder: (context, state) =>
+              AdminLoginScreen(onAdminLogin: _loginAdmin),
         ),
         GoRoute(
           path: '/admin',
@@ -130,6 +137,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
             animation: _reportService,
             builder: (context, _) {
               return AdminDashboardScreen(
+                reports: _reportService.reports,
                 totalReports: _reportService.totalReports,
                 pendingReports: _reportService.pendingReports,
                 resolvedReports: _reportService.resolvedReports,
@@ -146,9 +154,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
           builder: (context, state) => AnimatedBuilder(
             animation: _reportService,
             builder: (context, _) {
-              return AdminAllReportsScreen(
-                reports: _reportService.reports,
-              );
+              return AdminAllReportsScreen(reports: _reportService.reports);
             },
           ),
         ),
@@ -159,7 +165,7 @@ class _CampusFixAppState extends State<CampusFixApp> {
             if (reportId == null) return const SizedBox.shrink();
 
             return AnimatedBuilder(
-              animation: _reportService,
+              animation: Listenable.merge([_reportService, _adminStaffService]),
               builder: (context, _) {
                 final report = _reportService.getReportById(reportId);
                 if (report == null) {
@@ -171,14 +177,18 @@ class _CampusFixAppState extends State<CampusFixApp> {
 
                 return AdminReportManagementScreen(
                   report: report,
+                  staff: _adminStaffService.staffMembers,
                   onStatusChanged: (newStatus) {
                     _reportService.updateReportStatus(reportId, newStatus);
                   },
                   onStaffAssigned: (staffId, staffName) {
                     _reportService.assignStaff(reportId, staffId, staffName);
                   },
+                  onUnassign: () {
+                    _reportService.unassignStaff(reportId);
+                  },
                   onNoteAdded: (note) {
-                    _reportService.addReportNote(reportId, note);
+                    _reportService.addReportNote(reportId, 'Admin: $note');
                   },
                 );
               },
@@ -201,7 +211,8 @@ class _CampusFixAppState extends State<CampusFixApp> {
         ),
         GoRoute(
           path: '/staff-login',
-          builder: (context, state) => StaffLoginScreen(onStaffLogin: _loginStaff),
+          builder: (context, state) =>
+              StaffLoginScreen(onStaffLogin: _loginStaff),
         ),
         GoRoute(
           path: '/staff',
@@ -215,15 +226,26 @@ class _CampusFixAppState extends State<CampusFixApp> {
                 final staffReports = _reportService.reports
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
-                
+
                 final pendingTasks = staffReports
-                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected)
+                    .where(
+                      (r) =>
+                          r.status != ReportStatus.resolved &&
+                          r.status != ReportStatus.rejected,
+                    )
                     .length;
                 final urgentTasks = staffReports
-                    .where((r) => r.status != ReportStatus.resolved && r.status != ReportStatus.rejected && r.urgency == ReportUrgency.high)
+                    .where(
+                      (r) =>
+                          r.status != ReportStatus.resolved &&
+                          r.status != ReportStatus.rejected &&
+                          r.urgency == ReportUrgency.high,
+                    )
                     .length;
 
                 return StaffDashboardScreen(
+                  staffName: _staffAuthService.currentStaffName,
+                  assignedReports: staffReports,
                   pendingTasks: pendingTasks,
                   urgentTasks: urgentTasks,
                   onLogout: () {
@@ -247,7 +269,26 @@ class _CampusFixAppState extends State<CampusFixApp> {
                     .where((r) => r.assignedStaffId == staffId)
                     .toList();
 
-                return StaffAssignedReportsScreen(reports: staffReports);
+                final staffName = _staffAuthService.currentStaffName ?? 'Staff';
+                return StaffAssignedReportsScreen(
+                  reports: staffReports,
+                  onUpdateStatus: _reportService.updateReportStatus,
+                  onResolve:
+                      (
+                        String reportId, {
+                        required String note,
+                        String? imageBase64,
+                      }) {
+                        _reportService.resolveWithEvidence(
+                          reportId,
+                          note: note,
+                          imageBase64: imageBase64,
+                        );
+                      },
+                  onAddNote: (reportId, note) {
+                    _reportService.addReportNote(reportId, '$staffName: $note');
+                  },
+                );
               },
             );
           },
@@ -467,59 +508,7 @@ class _FirebaseServices {
   final String? authApiKey;
 }
 
-final _campusFixColorScheme =
-    ColorScheme.fromSeed(seedColor: const Color(0xFF114B3A)).copyWith(
-      primary: const Color(0xFF114B3A),
-      secondary: const Color(0xFF0D7C66),
-      surface: Colors.white,
-    );
-
-final _campusFixTheme = ThemeData(
-  colorScheme: _campusFixColorScheme,
-  scaffoldBackgroundColor: const Color(0xFFF5F7F4),
-  useMaterial3: true,
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.white,
-    foregroundColor: Color(0xFF17211C),
-    centerTitle: false,
-    elevation: 0,
-    surfaceTintColor: Colors.white,
-  ),
-  cardTheme: CardThemeData(
-    color: Colors.white,
-    elevation: 1,
-    margin: EdgeInsets.zero,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: const BorderSide(color: Color(0xFFE2E7E1)),
-    ),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: Color(0xFF114B3A), width: 2),
-    ),
-  ),
-  filledButtonTheme: FilledButtonThemeData(
-    style: FilledButton.styleFrom(
-      backgroundColor: const Color(0xFF114B3A),
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  ),
-  outlinedButtonTheme: OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      foregroundColor: const Color(0xFF114B3A),
-      side: const BorderSide(color: Color(0xFF9DB7AD)),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  ),
-);
+final _campusFixTheme = buildCampusFixTheme();
 
 class _ReportNotFoundScreen extends StatelessWidget {
   const _ReportNotFoundScreen();

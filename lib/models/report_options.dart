@@ -1,6 +1,7 @@
 enum ReportStatus {
   submitted('Submitted'),
   inProgress('In Progress'),
+  onHold('On Hold'),
   resolved('Resolved'),
   rejected('Rejected');
 

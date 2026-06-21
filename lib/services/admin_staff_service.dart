@@ -10,6 +10,21 @@ class AdminStaffService extends ChangeNotifier {
 
   List<StaffAccount> get staffMembers => _staffMembers;
 
+  /// Only staff who are currently active can be assigned new work or sign in.
+  List<StaffAccount> get activeStaff =>
+      _staffMembers.where((s) => s.isActive).toList();
+
+  /// Find a staff member by email (case-insensitive). Used for staff login.
+  StaffAccount? findByEmail(String email) {
+    final normalized = email.trim().toLowerCase();
+    for (final staff in _staffMembers) {
+      if (staff.email.trim().toLowerCase() == normalized) {
+        return staff;
+      }
+    }
+    return null;
+  }
+
   void _initMockData() {
     _staffMembers = [
       const StaffAccount(

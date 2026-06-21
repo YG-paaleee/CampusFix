@@ -3,8 +3,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/urgency_chip.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key, required this.reports});
@@ -41,16 +44,14 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
             children: [
               Text(
                 'Submitted Reports',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Search, filter, and sort your own maintenance reports.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: const Color(0xFF506158)),
+                style: TextStyle(color: AppColors.inkSoft, fontSize: 15),
               ),
               const SizedBox(height: 18),
               _ReportControls(
@@ -72,45 +73,27 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
               const SizedBox(height: 16),
               Text(
                 '${visibleReports.length} report${visibleReports.length == 1 ? '' : 's'} found',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.inkSoft,
+                ),
               ),
               const SizedBox(height: 12),
               if (visibleReports.isEmpty)
                 const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text('No reports match your search or filter.'),
+                  child: EmptyState(
+                    icon: Icons.search_off_rounded,
+                    title: 'No matching reports',
+                    message: 'Try a different search term or clear your filters.',
                   ),
                 )
               else
-                ...visibleReports.map((report) {
-                  return Padding(
+                ...visibleReports.map(
+                  (report) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFEAF2EE),
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.secondary,
-                          child: const Icon(Icons.build, size: 20),
-                        ),
-                        title: Text(
-                          report.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: Text(
-                          '${report.category.label} - ${report.location}\nUrgency: ${report.urgency.label} - ${report.reportId} - ${formatDate(report.submittedAt)}',
-                        ),
-                        trailing: StatusChip(status: report.status),
-                        isThreeLine: true,
-                        onTap: () {
-                          context.push('/student/reports/${report.reportId}');
-                        },
-                      ),
-                    ),
-                  );
-                }),
+                    child: _ReportCard(report: report),
+                  ),
+                ),
             ],
           ),
         ),
@@ -144,6 +127,86 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     });
 
     return filtered;
+  }
+}
+
+class _ReportCard extends StatelessWidget {
+  const _ReportCard({required this.report});
+
+  final MaintenanceReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: () => context.push('/student/reports/${report.reportId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: AppColors.brandSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.build_rounded,
+                      size: 20,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          report.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${report.category.label} • ${report.location}',
+                          style: const TextStyle(
+                            color: AppColors.inkSoft,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '${report.reportId} • ${formatDate(report.submittedAt)}',
+                          style: const TextStyle(
+                            color: AppColors.inkSoft,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  StatusChip(status: report.status),
+                  UrgencyChip(urgency: report.urgency),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

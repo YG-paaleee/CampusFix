@@ -3,7 +3,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/confirm_dialog.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/header_banner.dart';
+import '../../widgets/stat_card.dart';
 import '../../widgets/status_chip.dart';
 
 class StudentDashboardScreen extends StatelessWidget {
@@ -28,6 +33,7 @@ class StudentDashboardScreen extends StatelessWidget {
               report.status != ReportStatus.resolved,
         )
         .length;
+    final recentReports = reports.take(3).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -35,30 +41,22 @@ class StudentDashboardScreen extends StatelessWidget {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                'CF',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+            const _BrandMark(),
             const SizedBox(width: 10),
             const Text('CampusFix Student'),
           ],
         ),
         actions: [
           TextButton.icon(
-            onPressed: onLogout,
+            onPressed: () async {
+              final ok = await confirmAction(
+                context,
+                title: 'Log out?',
+                message: 'You will be returned to the login screen.',
+                confirmLabel: 'Log out',
+              );
+              if (ok) onLogout();
+            },
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
           ),
@@ -71,9 +69,23 @@ class StudentDashboardScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              _DashboardHeader(
-                highUrgencyCount: highUrgencyCount,
-                onSubmitPressed: () => context.push('/student/reports/new'),
+              HeaderBanner(
+                eyebrow: 'Student Area',
+                title: 'Student Dashboard',
+                subtitle:
+                    'Track campus repairs and submit maintenance requests.',
+                note: highUrgencyCount == 0
+                    ? 'No open high-urgency reports 🎉'
+                    : '$highUrgencyCount open high-urgency report${highUrgencyCount == 1 ? '' : 's'} need attention',
+                action: FilledButton.icon(
+                  onPressed: () => context.push('/student/reports/new'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Submit Report'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.brand,
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               LayoutBuilder(
@@ -89,103 +101,75 @@ class StudentDashboardScreen extends StatelessWidget {
                     children: [
                       SizedBox(
                         width: cardWidth,
-                        child: _StatusCard(
+                        child: StatCard(
                           label: ReportStatus.submitted.label,
                           value: '$submittedCount',
-                          icon: Icons.pending_actions,
+                          icon: Icons.fiber_new_rounded,
+                          color: AppColors.statusSubmitted,
                         ),
                       ),
                       SizedBox(
                         width: cardWidth,
-                        child: _StatusCard(
+                        child: StatCard(
                           label: ReportStatus.inProgress.label,
                           value: '$inProgressCount',
-                          icon: Icons.engineering,
+                          icon: Icons.autorenew_rounded,
+                          color: AppColors.statusInProgress,
                         ),
                       ),
                       SizedBox(
                         width: cardWidth,
-                        child: _StatusCard(
+                        child: StatCard(
                           label: ReportStatus.resolved.label,
                           value: '$resolvedCount',
-                          icon: Icons.check_circle,
+                          icon: Icons.check_circle_rounded,
+                          color: AppColors.statusResolved,
                         ),
                       ),
                     ],
                   );
                 },
               ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              const SizedBox(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     'Recent Reports',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () => context.push('/student/reports'),
-                        icon: const Icon(Icons.list_alt),
-                        label: const Text('My Reports'),
-                      ),
-                    ],
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/student/reports'),
+                    icon: const Icon(Icons.list_alt),
+                    label: const Text('My Reports'),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      if (reports.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(18),
-                          child: Text('No reports have been submitted yet.'),
-                        )
-                      else
-                        ...reports.take(3).map((report) {
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(
-                              backgroundColor: const Color(0xFFEAF2EE),
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.secondary,
-                              child: const Icon(
-                                Icons.report_problem_outlined,
-                                size: 20,
-                              ),
-                            ),
-                            title: Text(
-                              report.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${report.reportId} - ${formatDate(report.submittedAt)}\n${report.category.label} - ${report.location}',
-                            ),
-                            isThreeLine: true,
-                            trailing: StatusChip(status: report.status),
-                            onTap: () => context.push(
-                              '/student/reports/${report.reportId}',
-                            ),
-                          );
-                        }),
-                    ],
+              if (recentReports.isEmpty)
+                Card(
+                  child: EmptyState(
+                    icon: Icons.assignment_outlined,
+                    title: 'No reports yet',
+                    message:
+                        'Submit your first maintenance request and it will show up here.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.push('/student/reports/new'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Submit Report'),
+                    ),
+                  ),
+                )
+              else
+                ...recentReports.map(
+                  (report) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _ReportTile(report: report),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -198,136 +182,93 @@ class StudentDashboardScreen extends StatelessWidget {
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({
-    required this.highUrgencyCount,
-    required this.onSubmitPressed,
-  });
+class _ReportTile extends StatelessWidget {
+  const _ReportTile({required this.report});
 
-  final int highUrgencyCount;
-  final VoidCallback onSubmitPressed;
+  final MaintenanceReport report;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 720;
-            final intro = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'STUDENT AREA',
-                  style: TextStyle(
-                    color: Color(0xFF0D7C66),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                  ),
+      child: InkWell(
+        onTap: () => context.push('/student/reports/${report.reportId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: AppColors.brandSoft,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Student Dashboard',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF17211C),
-                  ),
+                child: const Icon(
+                  Icons.report_problem_outlined,
+                  size: 20,
+                  color: AppColors.accent,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Track campus repairs and submit maintenance requests.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF506158),
-                  ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      report.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${report.reportId} • ${formatDate(report.submittedAt)}',
+                      style: const TextStyle(
+                        color: AppColors.inkSoft,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      '${report.category.label} • ${report.location}',
+                      style: const TextStyle(
+                        color: AppColors.inkSoft,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  highUrgencyCount == 0
-                      ? 'No open high-urgency reports.'
-                      : '$highUrgencyCount open high-urgency report${highUrgencyCount == 1 ? '' : 's'} need attention.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF0D7C66),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            );
-            final button = FilledButton.icon(
-              onPressed: onSubmitPressed,
-              icon: const Icon(Icons.add),
-              label: const Text('Submit Report'),
-            );
-
-            if (isNarrow) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  intro,
-                  const SizedBox(height: 18),
-                  SizedBox(width: double.infinity, child: button),
-                ],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: intro),
-                const SizedBox(width: 16),
-                button,
-              ],
-            );
-          },
+              ),
+              const SizedBox(width: 12),
+              StatusChip(status: report.status),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(label),
-              ],
-            ),
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF2EE),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: Theme.of(context).colorScheme.secondary),
-            ),
-          ],
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        'CF',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

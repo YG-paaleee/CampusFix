@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../theme/app_colors.dart';
 import '../../utils/student_identity.dart';
 
 typedef StudentRegistrationHandler =
@@ -102,40 +103,65 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                'Student Registration',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Create an account so your maintenance reports are saved under your student profile.',
-              ),
-              const SizedBox(height: 20),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(24),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.brandSoft,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            color: AppColors.brand,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Student Registration',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Create an account so your maintenance reports are '
+                          'saved under your student profile.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.inkSoft, height: 1.4),
+                        ),
+                        const SizedBox(height: 28),
+                        const _FieldLabel('Full name'),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _fullNameController,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Full name',
-                            prefixIcon: Icon(Icons.badge),
+                            hintText: 'Juan Dela Cruz',
+                            prefixIcon: Icon(Icons.badge_outlined),
                           ),
                           validator: _requiredField,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
+                        const _FieldLabel('Student ID'),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _studentIdController,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Student ID',
+                            hintText: '2023-8-0099',
                             helperText: 'Format: 2023-8-0099',
-                            prefixIcon: Icon(Icons.confirmation_number),
+                            prefixIcon: Icon(Icons.confirmation_number_outlined),
                           ),
                           validator: (value) {
                             final text = value?.trim() ?? '';
@@ -148,15 +174,16 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
+                        const _FieldLabel('School email'),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           readOnly: true,
                           decoration: const InputDecoration(
-                            labelText: 'School email',
                             helperText: 'Generated from your student ID.',
-                            prefixIcon: Icon(Icons.email),
+                            prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
                             final text = value?.trim() ?? '';
@@ -169,13 +196,16 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
+                        const _FieldLabel('Password'),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock),
+                            hintText: 'At least 6 characters',
+                            prefixIcon: Icon(Icons.lock_outline),
                           ),
                           validator: (value) {
                             if ((value ?? '').length < 6) {
@@ -184,13 +214,16 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
+                        const _FieldLabel('Confirm password'),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: true,
+                          textInputAction: TextInputAction.done,
                           decoration: const InputDecoration(
-                            labelText: 'Confirm password',
-                            prefixIcon: Icon(Icons.lock_outline),
+                            hintText: 'Re-enter your password',
+                            prefixIcon: Icon(Icons.lock_reset_outlined),
                           ),
                           validator: (value) {
                             if (value != _passwordController.text) {
@@ -200,23 +233,55 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
                           },
                         ),
                         if (_errorText != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _errorText!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.statusRejectedBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppColors.statusRejected,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _errorText!,
+                                    style: const TextStyle(
+                                      color: AppColors.statusRejected,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 28),
                         FilledButton.icon(
                           onPressed: _isLoading ? null : _createAccount,
-                          icon: const Icon(Icons.person_add),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.person_add_alt_1_rounded),
                           label: Text(
                             _isLoading ? 'Creating...' : 'Create Account',
                           ),
                         ),
+                        const SizedBox(height: 8),
                         TextButton(
                           onPressed: _isLoading ? null : () => context.go('/'),
                           child: const Text('Back to login'),
@@ -238,5 +303,22 @@ class _StudentSignupScreenState extends State<StudentSignupScreen> {
       return 'This field is required.';
     }
     return null;
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: AppColors.ink,
+        fontWeight: FontWeight.w700,
+      ),
+    );
   }
 }

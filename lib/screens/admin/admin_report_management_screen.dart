@@ -1,21 +1,31 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../../models/maintenance_report.dart';
 import '../../models/report_options.dart';
+import '../../models/staff_account.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/date_formatter.dart';
+import '../../utils/status_styles.dart';
 import '../../widgets/status_chip.dart';
+import '../../widgets/urgency_chip.dart';
 
 class AdminReportManagementScreen extends StatefulWidget {
   const AdminReportManagementScreen({
     super.key,
     required this.report,
+    required this.staff,
     required this.onStatusChanged,
     required this.onStaffAssigned,
+    required this.onUnassign,
     required this.onNoteAdded,
   });
 
   final MaintenanceReport report;
+  final List<StaffAccount> staff;
   final ValueChanged<ReportStatus> onStatusChanged;
   final void Function(String staffId, String staffName) onStaffAssigned;
+  final VoidCallback onUnassign;
   final ValueChanged<String> onNoteAdded;
 
   @override
@@ -25,16 +35,52 @@ class AdminReportManagementScreen extends StatefulWidget {
 class _AdminReportManagementScreenState extends State<AdminReportManagementScreen> {
   final _noteController = TextEditingController();
 
-  final _mockStaffList = const [
-    {'id': 's1', 'name': 'John Doe (Electrician)'},
-    {'id': 's2', 'name': 'Jane Smith (Plumber)'},
-    {'id': 's3', 'name': 'Mike Johnson (General)'},
-  ];
-
   @override
   void dispose() {
     _noteController.dispose();
     super.dispose();
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _rejectReport() async {
+    final controller = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Reject report'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          minLines: 1,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Reason for rejection (shown to the student)',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Reject report'),
+          ),
+        ],
+      ),
+    );
+
+    if (reason == null || reason.isEmpty) return;
+    widget.onNoteAdded('Report rejected — $reason');
+    widget.onStatusChanged(ReportStatus.rejected);
+    _showSnack('Report rejected.');
   }
 
   @override
@@ -51,12 +97,16 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
+                _buildHeaderCard(),
+                const SizedBox(height: 20),
                 _buildDetailsCard(),
-                const SizedBox(height: 24),
+                if (widget.report.resolutionNote != null) ...[
+                  const SizedBox(height: 20),
+                  _buildResolutionCard(),
+                ],
+                const SizedBox(height: 20),
                 _buildManagementSection(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 _buildNotesSection(),
               ],
             ),
@@ -66,19 +116,34 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            widget.report.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
+  Widget _buildHeaderCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.report.title,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                StatusChip(status: widget.report.status),
+                UrgencyChip(urgency: widget.report.urgency),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        StatusChip(status: widget.report.status),
-      ],
+      ),
     );
   }
 
@@ -89,8 +154,8 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Divider(height: 32),
+            const _SectionTitle('Details'),
+            const SizedBox(height: 20),
             _DetailRow(label: 'Report ID', value: widget.report.reportId),
             _DetailRow(label: 'Submitted By', value: 'Student ${widget.report.studentId}'),
             _DetailRow(label: 'Date', value: formatDate(widget.report.submittedAt)),
@@ -99,12 +164,22 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
             _DetailRow(
               label: 'Urgency',
               value: widget.report.urgency.label,
-              valueColor: _getUrgencyColor(widget.report.urgency),
+              valueColor: urgencyColor(widget.report.urgency),
             ),
             const SizedBox(height: 16),
-            const Text('Description:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
+            const Text(
+              'Description',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(widget.report.description, style: const TextStyle(fontSize: 16)),
+            Text(
+              widget.report.description,
+              style: const TextStyle(fontSize: 16, color: AppColors.ink, height: 1.5),
+            ),
           ],
         ),
       ),
@@ -118,54 +193,127 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Divider(height: 32),
-            Row(
-              children: [
-                const Text('Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<ReportStatus>(
-                    value: widget.report.status,
-                    decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 16)),
-                    items: ReportStatus.values
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        widget.onStatusChanged(value);
-                      }
-                    },
+            const _SectionTitle('Management'),
+            const SizedBox(height: 20),
+            const Text(
+              'Status',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<ReportStatus>(
+              value: widget.report.status,
+              items: ReportStatus.values
+                  .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  widget.onStatusChanged(value);
+                  _showSnack('Status updated to ${value.label}.');
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Assign To',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              value: widget.report.assignedStaffId,
+              hint: const Text('Unassigned'),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Unassigned'),
+                ),
+                ...widget.staff.map(
+                  (s) => DropdownMenuItem<String?>(
+                    value: s.staffId,
+                    enabled: s.isActive,
+                    child: Text(
+                      s.isActive
+                          ? '${s.fullName} — ${s.specialty}'
+                          : '${s.fullName} — ${s.specialty} (inactive)',
+                    ),
                   ),
                 ),
               ],
+              onChanged: (value) {
+                if (value == null) {
+                  widget.onUnassign();
+                  _showSnack('Report unassigned.');
+                  return;
+                }
+                final staff =
+                    widget.staff.firstWhere((s) => s.staffId == value);
+                widget.onStaffAssigned(staff.staffId, staff.fullName);
+                _showSnack('Assigned to ${staff.fullName}.');
+              },
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                const Text('Assign To:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: widget.report.assignedStaffId,
-                    hint: const Text('Unassigned'),
-                    decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 16)),
-                    items: [
-                      const DropdownMenuItem<String>(value: null, child: Text('Unassigned')),
-                      ..._mockStaffList.map(
-                        (s) => DropdownMenuItem(value: s['id'], child: Text(s['name']!)),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        final staff = _mockStaffList.firstWhere((s) => s['id'] == value);
-                        widget.onStaffAssigned(staff['id']!, staff['name']!);
-                      }
-                    },
+            if (widget.report.status != ReportStatus.rejected) ...[
+              const Divider(height: 32),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _rejectReport,
+                  icon: const Icon(Icons.block_rounded),
+                  label: const Text('Reject report'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.statusRejected,
+                    side: const BorderSide(color: AppColors.statusRejected),
                   ),
                 ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResolutionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.verified_rounded,
+                    color: statusColor(ReportStatus.resolved)),
+                const SizedBox(width: 10),
+                const _SectionTitle('Completion Evidence'),
               ],
             ),
+            const SizedBox(height: 16),
+            Text(
+              widget.report.resolutionNote ?? '',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.ink,
+                height: 1.5,
+              ),
+            ),
+            if (widget.report.resolutionImage != null) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.memory(
+                  base64Decode(widget.report.resolutionImage!),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -179,12 +327,15 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Notes & Updates', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Divider(height: 32),
+            const _SectionTitle('Notes & Updates'),
+            const SizedBox(height: 20),
             if (widget.report.notes.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(bottom: 16.0),
-                child: Text('No notes added yet.', style: TextStyle(color: Colors.black54)),
+                child: Text(
+                  'No notes added yet.',
+                  style: TextStyle(color: AppColors.inkSoft),
+                ),
               )
             else
               ListView.builder(
@@ -194,13 +345,32 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 itemBuilder: (context, index) {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F7F4),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFE2E7E1)),
+                      color: AppColors.brandSoft,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
                     ),
-                    child: Text(widget.report.notes[index]),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 18,
+                          color: AppColors.accent,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            widget.report.notes[index],
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -218,10 +388,11 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
                 const SizedBox(width: 16),
                 FilledButton(
                   onPressed: () {
-                    final text = _noteController.text;
+                    final text = _noteController.text.trim();
                     if (text.isNotEmpty) {
                       widget.onNoteAdded(text);
                       _noteController.clear();
+                      _showSnack('Note added.');
                     }
                   },
                   child: const Text('Add Note'),
@@ -233,16 +404,23 @@ class _AdminReportManagementScreenState extends State<AdminReportManagementScree
       ),
     );
   }
+}
 
-  Color _getUrgencyColor(ReportUrgency urgency) {
-    switch (urgency) {
-      case ReportUrgency.high:
-        return Colors.redAccent;
-      case ReportUrgency.medium:
-        return Colors.orange;
-      case ReportUrgency.low:
-        return Colors.green;
-    }
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        color: AppColors.ink,
+      ),
+    );
   }
 }
 
@@ -264,15 +442,18 @@ class _DetailRow extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.inkSoft,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: TextStyle(
-                fontWeight: valueColor != null ? FontWeight.bold : FontWeight.normal,
-                color: valueColor ?? Colors.black87,
+                fontWeight: valueColor != null ? FontWeight.w700 : FontWeight.normal,
+                color: valueColor ?? AppColors.ink,
               ),
             ),
           ),
